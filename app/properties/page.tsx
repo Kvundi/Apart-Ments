@@ -1,8 +1,8 @@
-"use client";
-
-import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState, useMemo } from "react";
-import { MapPin, Bed, Bath, Square, Search as SearchIcon } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import Navbar from "@/components/Navbar";
+import Link from "next/link";
+import { MapPin, BedDouble, Bath, Maximize, Search } from "lucide-react";
+import PropertiesFilter from "@/components/PropertiesFilter";
 
 type Property = {
   id: string;
@@ -10,159 +10,202 @@ type Property = {
   price: number;
   location: string;
   property_type: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  size_sqm?: number;
-  images?: string[];
+  listing_type: string;
+  status: string;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  size_sqm: number | null;
+  images: string[] | null;
 };
 
-export default function PropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Filters
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedType, setSelectedType] = useState("All");
-  const [maxPrice, setMaxPrice] = useState(100000000);
-  const [minBedrooms, setMinBedrooms] = useState(0);
+export default async function PropertiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const raw = await searchParams;
+  const sp: Record<string, string> = Object.fromEntries(
+    Object.entries(raw).map(([k, v]) => [k, Array.isArray(v) ? v[0] ?? "" : v ?? ""])
+  );
 
-  useEffect(() => {
-    async function fetchProperties() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("properties")
-        .select("*")
-        .order("created_at", { ascending: false });
+  const type     = sp?.type     ?? "";
+  const property = sp?.property ?? "";
+  const location = sp?.location ?? "";
+  const q        = sp?.q        ?? "";
+  const min      = sp?.min      ?? "";
+  const max      = sp?.max      ?? "";
+  const beds     = sp?.beds     ?? "";
+  const amenity  = sp?.amenity  ?? "";
+  // Strip characters that break PostgREST filter syntax
+  const safe = (s: string) => s.replace(/[,()*%]/g, " ").trim();
 
-      setProperties(data || []);
-      setLoading(false);
-    }
+  const supabase = await createClient();
 
-    fetchProperties();
-  }, []);
+  let query = supabase
+    .from("properties")
+    .select("id, title, price, location, property_type, listing_type, status, bedrooms, bathrooms, size_sqm, images")
+    .eq("status", "Available")
+    .order("created_at", { ascending: false });
 
-  // Filtered Properties
-  const filteredProperties = useMemo(() => {
-    return properties.filter((p) => {
-      const matchesSearch = 
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.location.toLowerCase().includes(searchTerm.toLowerCase());
+  if (type === "sale")          query = query.eq("listing_type", "Sale");
+  else if (type === "rent")     query = query.eq("listing_type", "Rent");
+  if (property)                 query = query.eq("property_type", property);
+  if (location)                 query = query.ilike("location", `%${safe(location)}%`);
+  if (safe(q))                  query = query.or(`title.ilike.%${safe(q)}%,location.ilike.%${safe(q)}%`);
+  if (min && !isNaN(Number(min))) query = query.gte("price", Number(min));
+  if (max && !isNaN(Number(max))) query = query.lte("price", Number(max));
+  if (beds && beds !== "any" && !isNaN(Number(beds))) query = query.gte("bedrooms", Number(beds));
+  if (amenity)                  query = query.contains("amenities", [amenity]);
 
-      const matchesType = selectedType === "All" || p.property_type === selectedType;
-      const matchesPrice = p.price <= maxPrice;
-      const matchesBedrooms = !minBedrooms || (p.bedrooms && p.bedrooms >= minBedrooms);
+  const { data: properties, error } = await query.limit(48);
+  if (error) console.error("Failed to load properties:", error.message);
 
-      return matchesSearch && matchesType && matchesPrice && matchesBedrooms;
-    });
-  }, [properties, searchTerm, selectedType, maxPrice, minBedrooms]);
+  // Parse images safely — handles both array and JSON string formats
+  const listings: Property[] = (properties || []).map((row) => {
+    const p = row as Omit<Property, "images"> & { images: unknown };
+    return {
+    ...p,
+    images: Array.isArray(p.images)
+      ? p.images
+      : typeof p.images === "string"
+      ? JSON.parse(p.images)
+      : null,
+    } as Property;
+  });
+
+  const filterLabel = [
+    type === "sale" ? "For Sale" : type === "rent" ? "For Rent" : null,
+    property,
+    location,
+    q,
+  ].filter(Boolean).join(" · ");
+
+  const currentParams: Record<string, string> = {};
+  if (type)     currentParams.type     = type;
+  if (property) currentParams.property = property;
+  if (location) currentParams.location = location;
+  if (q)        currentParams.q        = q;
+  if (min)      currentParams.min      = min;
+  if (max)      currentParams.max      = max;
+  if (beds)     currentParams.beds     = beds;
+  if (amenity)  currentParams.amenity  = amenity;
 
   return (
-    <div className="min-h-screen bg-[#0f1a17] text-[#f1ede6] pb-12">
-      <div className="max-w-7xl mx-auto px-6 py-10">
-        <h1 className="text-4xl font-bold mb-2">Available Properties</h1>
-        <p className="text-[#c8b8a8] mb-8">Find your perfect home</p>
+    <div className="min-h-screen bg-white text-[#1a2420]">
+      <Navbar />
 
-        {/* Filters */}
-        <div className="card p-6 mb-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Search */}
-            <div>
-              <label className="block text-sm mb-2 text-[#c8b8a8]">Search</label>
-              <div className="relative">
-                <SearchIcon className="absolute left-4 top-3.5 text-gray-400" size={20} />
-                <input
-                  type="text"
-                  placeholder="Location or title..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input w-full pl-11 py-3 rounded-2xl"
-                />
-              </div>
-            </div>
-
-            {/* Property Type */}
-            <div>
-              <label className="block text-sm mb-2 text-[#c8b8a8]">Type</label>
-              <select
-                value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
-                className="input w-full py-3 rounded-2xl"
-              >
-                <option value="All">All Types</option>
-                <option value="Apartment">Apartment</option>
-                <option value="House">House</option>
-                <option value="Maisonette">Maisonette</option>
-                <option value="Villa">Villa</option>
-                <option value="Land">Land</option>
-              </select>
-            </div>
-
-            {/* Max Price */}
-            <div>
-              <label className="block text-sm mb-2 text-[#c8b8a8]">Max Price (KSh)</label>
+      <div className="bg-[#f7f5ef] border-b border-[#e6e2d8] py-4 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-3 bg-white border border-[#e6e2d8] rounded-2xl px-5 py-3 shadow-sm">
+            <Search size={18} className="text-emerald-600 shrink-0" />
+            <form method="GET" action="/properties" className="flex-1 flex items-center gap-3">
+              {type     && <input type="hidden" name="type"     value={type}     />}
+              {property && <input type="hidden" name="property" value={property} />}
+              {min      && <input type="hidden" name="min"      value={min}      />}
+              {max      && <input type="hidden" name="max"      value={max}      />}
+              {beds     && <input type="hidden" name="beds"     value={beds}     />}
               <input
-                type="range"
-                min={1000000}
-                max={200000000}
-                step={1000000}
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-                className="w-full accent-emerald-500"
+                name="q"
+                type="text"
+                defaultValue={q}
+                placeholder="Search by area, estate or keyword…"
+                className="flex-1 outline-none text-sm bg-transparent text-[#1a2420] placeholder:text-[#9c948a]"
               />
-              <p className="text-right text-sm mt-1">KSh {maxPrice.toLocaleString()}</p>
-            </div>
-
-            {/* Min Bedrooms */}
-            <div>
-              <label className="block text-sm mb-2 text-[#c8b8a8]">Min Bedrooms</label>
-              <select
-                value={minBedrooms}
-                onChange={(e) => setMinBedrooms(Number(e.target.value))}
-                className="input w-full py-3 rounded-2xl"
-              >
-                <option value={0}>Any</option>
-                <option value={1}>1+</option>
-                <option value={2}>2+</option>
-                <option value={3}>3+</option>
-                <option value={4}>4+</option>
-              </select>
-            </div>
+              <button type="submit" className="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors shrink-0">
+                Search
+              </button>
+            </form>
           </div>
         </div>
+      </div>
 
-        {/* Results */}
-        <p className="mb-6 text-[#c8b8a8]">{filteredProperties.length} properties found</p>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <aside className="lg:w-72 flex-shrink-0">
+            <PropertiesFilter key={JSON.stringify(currentParams)} currentParams={currentParams} />
+          </aside>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredProperties.map((p) => (
-            <a 
-              key={p.id} 
-              href={`/properties/${p.id}`}
-              className="card group rounded-3xl overflow-hidden hover:scale-[1.03] transition-all duration-300"
-            >
-              {/* Image */}
-              <div className="relative h-64 bg-zinc-800 overflow-hidden">
-                {p.images?.[0] ? (
-                  <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-6xl opacity-30">🏡</div>
-                )}
+          <main className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <div>
+                <h1 className="text-2xl font-bold">
+                  {listings.length > 0
+                    ? `${listings.length} propert${listings.length === 1 ? "y" : "ies"} found`
+                    : "No properties found"}
+                </h1>
+                {filterLabel && <p className="text-sm text-[#6b6358] mt-1">{filterLabel}</p>}
               </div>
+              {Object.keys(currentParams).length > 0 && (
+                <Link href="/properties" className="text-sm text-emerald-600 hover:underline">Clear filters</Link>
+              )}
+            </div>
 
-              <div className="p-6">
-                <h3 className="font-semibold text-xl line-clamp-2">{p.title}</h3>
-                <p className="text-3xl font-bold text-emerald-400 mt-3">KSh {p.price.toLocaleString()}</p>
-                <p className="text-[#c8b8a8] mt-2 flex items-center gap-1.5"><MapPin size={18} /> {p.location}</p>
-
-                <div className="flex gap-6 mt-6 text-sm border-t border-[#2a3d35] pt-5">
-                  {p.bedrooms && <div className="flex items-center gap-2"><Bed size={20} className="text-emerald-400" /> {p.bedrooms}</div>}
-                  {p.bathrooms && <div className="flex items-center gap-2"><Bath size={20} className="text-emerald-400" /> {p.bathrooms}</div>}
-                </div>
+            {listings.length === 0 && (
+              <div className="text-center py-20 border border-[#e6e2d8] rounded-3xl bg-[#f7f5ef]">
+                <div className="text-7xl mb-4 opacity-30">🏠</div>
+                <h2 className="text-xl font-bold mb-2">No properties match your search</h2>
+                <p className="text-[#6b6358] mb-6">Try adjusting your filters or searching a different area.</p>
+                <Link href="/properties" className="inline-block bg-emerald-600 text-white font-semibold px-8 py-3 rounded-2xl">
+                  View all listings
+                </Link>
               </div>
-            </a>
-          ))}
+            )}
+
+            {listings.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {listings.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/properties/${p.id}`}
+                    className="group rounded-3xl overflow-hidden bg-white border border-[#e6e2d8] hover:border-emerald-300 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col"
+                  >
+                    <div className="h-48 bg-[#f7f5ef] relative flex items-center justify-center overflow-hidden">
+                      {p.images?.[0] ? (
+                        <img
+                          src={p.images[0]}
+                          alt={p.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="text-6xl opacity-20">🏠</div>
+                      )}
+                      <div className="absolute top-3 left-3">
+                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${p.listing_type === "Rent" ? "bg-emerald-600 text-white" : "bg-[#1a2420] text-white"}`}>
+                          For {p.listing_type}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="font-semibold text-base line-clamp-2 mb-1.5 text-[#1a2420] group-hover:text-emerald-600 transition-colors">
+                        {p.title}
+                      </h3>
+                      <p className="text-emerald-600 text-xl font-bold">
+                        KSh {p.price?.toLocaleString()}
+                        {p.listing_type === "Rent" && <span className="text-sm font-normal text-[#6b6358]"> /mo</span>}
+                      </p>
+                      <p className="text-[#6b6358] mt-1.5 flex items-center gap-1 text-sm">
+                        <MapPin size={14} className="shrink-0" />{p.location}
+                      </p>
+                      <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#e6e2d8] text-sm text-[#6b6358]">
+                        {p.bedrooms  !== null && <span className="flex items-center gap-1"><BedDouble size={14} className="text-emerald-600/70" />{p.bedrooms === 0 ? "Studio" : `${p.bedrooms} bed`}</span>}
+                        {p.bathrooms !== null && <span className="flex items-center gap-1"><Bath size={14} className="text-emerald-600/70" />{p.bathrooms} bath</span>}
+                        {p.size_sqm  !== null && <span className="flex items-center gap-1"><Maximize size={14} className="text-emerald-600/70" />{p.size_sqm} m²</span>}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </main>
         </div>
       </div>
+
+      <footer className="bg-[#f7f5ef] py-10 border-t border-[#e6e2d8] mt-16">
+        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-[#9c948a]">
+          © 2026 Keja Yangu Ltd. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }

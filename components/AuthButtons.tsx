@@ -1,7 +1,6 @@
 "use client";
 
 import { useUser, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
-import Link from "next/link";
 
 export default function AuthButtons() {
   const { isSignedIn } = useUser();

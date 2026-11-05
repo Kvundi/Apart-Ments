@@ -12,7 +12,7 @@ export default function TestSupabase() {
       try {
         const supabase = createClient();
         
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from("properties")
           .select("count")
           .limit(1);
@@ -23,8 +23,8 @@ export default function TestSupabase() {
         } else {
           setStatus("✅ Supabase Connected Successfully!");
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err));
         setStatus("❌ Connection Error");
       }
     }
@@ -52,7 +52,7 @@ export default function TestSupabase() {
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-10">
-          If you see the green "✅ Supabase Connected Successfully!", we can continue building.
+          If you see the green &quot;✅ Supabase Connected Successfully!&quot;, we can continue building.
         </p>
       </div>
     </div>
