@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, ChevronDown, User } from "lucide-react";
+import { Menu, X, ChevronDown, User, Heart } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useSavedHomes } from "@/lib/savedHomes";
 
 const NAV_ITEMS = [
   {
@@ -46,7 +47,8 @@ const NAV_ITEMS = [
 
 export default function Navbar() {
   const { isSignedIn, user } = useUser();
-  const [mobileOpen,           setMobileOpen]           = useState(false);
+  const savedCount = useSavedHomes().length;
+  const [mobileOpen,          setMobileOpen]           = useState(false);
   const [openDropdown,         setOpenDropdown]         = useState<string | null>(null);
   const [openMobileAccordion,  setOpenMobileAccordion]  = useState<string | null>(null);
 
@@ -102,6 +104,14 @@ export default function Navbar() {
 
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+            <Link href="/saved" aria-label="Saved homes" title="Saved homes" className="relative p-2 rounded-xl hover:bg-[#f7f5ef] transition-colors">
+              <Heart size={20} className={savedCount > 0 ? "text-rose-500 fill-rose-500" : "text-[#1a2420]"} />
+              {savedCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">
+                  {savedCount}
+                </span>
+              )}
+            </Link>
             {isSignedIn ? (
               <>
                 <Link href="/profile" className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#f7f5ef] transition-colors">
@@ -169,6 +179,10 @@ export default function Navbar() {
               )}
             </div>
           ))}
+
+          <Link href="/saved" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-6 py-4 border-b border-[#e6e2d8] text-base font-semibold text-[#1a2420] hover:text-emerald-600">
+            <Heart size={18} className="text-rose-500" /> Saved homes{savedCount > 0 ? ` (${savedCount})` : ""}
+          </Link>
 
           <div className="px-6 py-4 flex flex-col gap-3">
             {isSignedIn ? (

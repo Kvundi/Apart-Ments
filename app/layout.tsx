@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import MobileNav from "@/components/MobileNav";
+import SavedHomesSync from "@/components/SavedHomesSync";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className={`${inter.className} pb-16 md:pb-0`}>
           {children}
           <MobileNav />
+          <SavedHomesSync />
         </body>
       </html>
     </ClerkProvider>

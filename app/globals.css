@@ -21,3 +21,29 @@ body {
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }
+/* ── Map pins (Leaflet divIcons) ── */
+.kv-price-pin {
+  display: inline-block;
+  transform: translate(0, 0);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font: 700 12px/1.2 system-ui, sans-serif;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.kv-price-pin.kv-sale { background: #1a2420; }
+.kv-price-pin.kv-rent { background: #059669; }
+.kv-price-pin:hover { transform: scale(1.1); }
+
+.kv-drop-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  background: #059669;
+  border: 3px solid #fff;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}

@@ -6,6 +6,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, X, Image as ImageIcon, Video, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import { toE164 } from "@/lib/phone";
+import { getCoords } from "@/lib/listing";
+import { LocationPicker } from "@/components/map";
 
 const AMENITIES_LIST = [
   "Parking", "Garden", "Balcony", "Swimming Pool", "Gym", 
@@ -36,6 +39,8 @@ function AddProperty() {
   const [videos, setVideos] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [amenities, setAmenities] = useState<string[]>([]);
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+  const [hadCoords, setHadCoords] = useState(false); // editing a listing that already had a pin
 
   const [formData, setFormData] = useState({
     title: "",
@@ -49,10 +54,24 @@ function AddProperty() {
     location: "",
     address: "",
     size_sqm: "",
+    contact_name: "",
     contact_phone: "",
     contact_email: "",
     preferred_contact: "phone",
   });
+
+  // New listing: prefill owner name/phone from the signed-in account once (user can change them).
+  // Done during render rather than in an effect — see react.dev "adjusting state when a prop changes".
+  const [prefilled, setPrefilled] = useState(false);
+  if (!prefilled && !editId && isLoaded && user) {
+    setPrefilled(true);
+    setFormData((prev) => ({
+      ...prev,
+      contact_name: prev.contact_name || user.fullName || "",
+      contact_phone: prev.contact_phone || user.primaryPhoneNumber?.phoneNumber || "",
+      contact_email: prev.contact_email || user.primaryEmailAddress?.emailAddress || "",
+    }));
+  }
 
   // Load property for editing
   useEffect(() => {
@@ -79,6 +98,7 @@ function AddProperty() {
           location: data.location || "",
           address: data.address || "",
           size_sqm: data.size_sqm?.toString() || "",
+          contact_name: data.contact_name || "",
           contact_phone: data.contact_phone || "",
           contact_email: data.contact_email || "",
           preferred_contact: data.preferred_contact || "phone",
@@ -86,6 +106,9 @@ function AddProperty() {
         setImages(data.images || []);
         setVideos(data.videos || []);
         setAmenities(data.amenities || []);
+        const existing = getCoords(data);
+        setCoords(existing);
+        setHadCoords(!!existing);
         setIsEditing(true);
       }
     }
@@ -253,6 +276,17 @@ const compressAndUpload = async (file: File): Promise<string> => {
       return;
     }
 
+    const contactName = formData.contact_name.trim();
+    const contactPhone = toE164(formData.contact_phone);
+    if (!contactName) {
+      alert("Please enter the owner's name");
+      return;
+    }
+    if (!contactPhone) {
+      alert("Please enter a valid phone number, e.g. 0712 345 678 or +254 712 345 678");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -260,6 +294,8 @@ const compressAndUpload = async (file: File): Promise<string> => {
 
       const payload = {
         ...formData,
+        contact_name: contactName,
+        contact_phone: contactPhone, // stored as E.164 so call/WhatsApp links always work
         price: parseFloat(formData.price),
         bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
         bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
@@ -267,6 +303,11 @@ const compressAndUpload = async (file: File): Promise<string> => {
         images: images,
         videos: videos,
         amenities: amenities,
+        // Only send coordinates when there's a pin (or one is being removed), so saving
+        // still works before the latitude/longitude migration has been run.
+        ...(coords || hadCoords
+          ? { latitude: coords?.[0] ?? null, longitude: coords?.[1] ?? null }
+          : {}),
         user_id: user?.id,
         verification_status: isEditing ? undefined : 'pending', // Only set pending on new listings
       };
@@ -383,16 +424,38 @@ const compressAndUpload = async (file: File): Promise<string> => {
             <input type="text" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" placeholder="Plot number, street, estate" />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium mb-1 text-[#c8b8a8]">Map Pin (Recommended)</label>
+            <p className="text-xs text-[#c8b8a8] mb-3">
+              Tap the map where the property is, or use your location if you&apos;re there now. Buyers only see the
+              approximate area, never the exact pin. Listings with a pin appear in map search.
+            </p>
+            <LocationPicker value={coords} onChange={setCoords} />
+          </div>
+
           {/* Contact Info */}
           <div className="card rounded-2xl p-6 space-y-4 border border-[#2a3d35]">
             <h3 className="font-semibold text-lg">Contact Information</h3>
-            <p className="text-sm text-[#c8b8a8]">How should interested buyers reach you?</p>
-            
+            <p className="text-sm text-[#c8b8a8]">This is shown on your listing so interested buyers and tenants can reach you.</p>
+
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Phone Number</label>
-              <input 
-                type="tel" 
-                value={formData.contact_phone} 
+              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Owner / Agent Name *</label>
+              <input
+                type="text"
+                required
+                value={formData.contact_name}
+                onChange={(e) => setFormData({...formData, contact_name: e.target.value})}
+                className="input w-full px-5 py-4 rounded-2xl"
+                placeholder="e.g. Jane Wanjiku"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Phone Number *</label>
+              <input
+                type="tel"
+                required
+                value={formData.contact_phone}
                 onChange={(e) => setFormData({...formData, contact_phone: e.target.value})} 
                 className="input w-full px-5 py-4 rounded-2xl" 
                 placeholder="+254 7XX XXX XXX" 

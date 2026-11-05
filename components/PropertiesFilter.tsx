@@ -41,13 +41,15 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
     if (location)               params.set("location", location);
     if (currentParams.q)        params.set("q",        currentParams.q);
     if (currentParams.amenity)  params.set("amenity",  currentParams.amenity);
+    if (currentParams.sort)     params.set("sort",     currentParams.sort);
+    if (currentParams.view)     params.set("view",     currentParams.view);
     router.push(`/properties?${params.toString()}`);
   };
 
   const clearFilters = () => {
     setListingType(""); setPropertyType(""); setMinPrice("");
     setMaxPrice(""); setBeds("any"); setLocation("");
-    router.push("/properties");
+    router.push(currentParams.view === "map" ? "/properties?view=map" : "/properties");
   };
 
   const pricePresets = listingType === "rent" ? PRICE_PRESETS_RENT : PRICE_PRESETS_SALE;
