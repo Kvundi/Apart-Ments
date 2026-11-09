@@ -11,7 +11,7 @@ export default function ShareButton({ title }: { title: string }) {
     const url = window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({ title, text: `${title} — on Keja Yangu`, url });
+        await navigator.share({ title, text: `${title} — on Apart Ments`, url });
         return;
       } catch (err) {
         if ((err as Error)?.name === "AbortError") return; // user closed the sheet

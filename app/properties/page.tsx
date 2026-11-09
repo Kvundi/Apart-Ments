@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 import Link from "next/link";
-import { Search } from "lucide-react";
+import { Search, SearchX } from "lucide-react";
 import PropertiesFilter from "@/components/PropertiesFilter";
 import PropertyCard, { toCardData } from "@/components/PropertyCard";
 import SortSelect from "@/components/SortSelect";
@@ -10,6 +12,23 @@ import ViewToggle from "@/components/ViewToggle";
 import SaveSearchButton from "@/components/SaveSearchButton";
 import { ListingsMap } from "@/components/map";
 import { parseFilters, activeParams, searchKey, describeFilters, buildPropertyQuery } from "@/lib/propertySearch";
+
+type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+/** "Apartments for rent in Kilimani" style titles, so each search can rank on its own. */
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const f = parseFilters(await searchParams);
+  const what = f.property ? (f.property.endsWith("s") ? f.property : `${f.property}s`) : f.type === "sale" ? "Homes" : f.type === "rent" ? "Homes" : "Property";
+  const deal = f.type === "sale" ? " for sale" : f.type === "rent" ? " for rent" : " for sale and rent";
+  const where = f.location ? ` in ${f.location}` : " in Kenya";
+  const title = `${what}${deal}${where}`;
+  const qs = new URLSearchParams(activeParams(f, { includeSort: false })).toString();
+  return {
+    title,
+    description: `Browse ${title.toLowerCase()} on Apart Ments. Every listing is reviewed — contact owners and agents directly on WhatsApp, with no viewing fees.`,
+    alternates: { canonical: `/properties${qs ? `?${qs}` : ""}` },
+  };
+}
 
 export default async function PropertiesPage({
   searchParams,
@@ -33,7 +52,7 @@ export default async function PropertiesPage({
 
   const empty = (
     <div className="text-center py-20 border border-[#e6e2d8] rounded-3xl bg-[#f7f5ef]">
-      <div className="text-7xl mb-4 opacity-30">🏠</div>
+      <SearchX size={52} className="mx-auto mb-4 text-emerald-700/50" />
       <h2 className="text-xl font-bold mb-2">No properties match your search</h2>
       <p className="text-[#6b6358] mb-6">Try adjusting your filters, or save this search and we&apos;ll alert you when one is listed.</p>
       <Link href="/properties" className="inline-block bg-emerald-600 text-white font-semibold px-8 py-3 rounded-2xl">
@@ -119,12 +138,7 @@ export default async function PropertiesPage({
           </main>
         </div>
       </div>
-
-      <footer className="bg-[#f7f5ef] py-10 border-t border-[#e6e2d8] mt-16">
-        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-[#9c948a]">
-          © 2026 Keja Yangu Ltd. All rights reserved.
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

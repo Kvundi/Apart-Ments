@@ -2,21 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, PlusSquare, List, User } from "lucide-react";
+import { Home, Search, PlusSquare, Heart, User } from "lucide-react";
 
 const TABS = [
   { label: "Home",     href: "/",            icon: Home       },
   { label: "Search",   href: "/properties",  icon: Search     },
+  { label: "Saved",    href: "/saved",       icon: Heart      },
   { label: "Post",     href: "/add",         icon: PlusSquare },
-  { label: "Listings", href: "/my-listings", icon: List       },
-  { label: "Profile",  href: "/profile",     icon: User       },
+  { label: "Account",  href: "/profile",     icon: User       },
 ];
 
 export default function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e6e2d8]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e6e2d8]">
       <div className="flex items-stretch">
         {TABS.map(({ label, href, icon: Icon }) => {
           const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);

@@ -69,7 +69,7 @@ export default function LocationPicker({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="h-72 rounded-2xl overflow-hidden border border-[#2a3d35]">
+      <div className="h-72 rounded-2xl overflow-hidden border border-[#e6e2d8]">
         <MapContainer center={value ?? NAIROBI} zoom={value ? 15 : 11} scrollWheelZoom className="w-full h-full z-0">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -97,19 +97,19 @@ export default function LocationPicker({ value, onChange }: Props) {
           type="button"
           onClick={useMyLocation}
           disabled={locating}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 disabled:opacity-60"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-[#e6e2d8] hover:border-emerald-400 disabled:opacity-60"
         >
           <LocateFixed size={16} /> {locating ? "Locating…" : "Use my current location"}
         </button>
         {value && (
           <>
-            <span className="text-[#c8b8a8]">Pin: {value[0].toFixed(5)}, {value[1].toFixed(5)}</span>
-            <button type="button" onClick={() => onChange(null)} className="inline-flex items-center gap-1 text-[#c8b8a8] hover:text-white">
+            <span className="text-[#6b6358]">Pin: {value[0].toFixed(5)}, {value[1].toFixed(5)}</span>
+            <button type="button" onClick={() => onChange(null)} className="inline-flex items-center gap-1 text-[#6b6358] hover:text-[#1a2420]">
               <X size={14} /> Remove pin
             </button>
           </>
         )}
-        {geoError && <span className="text-amber-400">{geoError}</span>}
+        {geoError && <span className="text-amber-700">{geoError}</span>}
       </div>
     </div>
   );

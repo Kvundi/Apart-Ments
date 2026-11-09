@@ -4,15 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
-const QUICK_SEARCHES = ["Westlands", "Karen", "Kilimani", "Runda", "Nyali"];
+const DEFAULT_CHIPS = ["Westlands", "Kilimani", "Kileleshwa", "Ruaka", "Syokimau", "Nyali"];
 
 const TABS = [
-  { label: "Buy",              type: "sale" },
-  { label: "Rent",             type: "rent" },
-  { label: "New Developments", type: "new"  },
+  { label: "Buy",  type: "sale" },
+  { label: "Rent", type: "rent" },
 ];
 
-export default function HomeSearch() {
+export default function HomeSearch({ chips = DEFAULT_CHIPS }: { chips?: string[] }) {
   const router = useRouter();
   const [query,     setQuery]     = useState("");
   const [activeTab, setActiveTab] = useState("sale");
@@ -40,6 +39,8 @@ export default function HomeSearch() {
         {TABS.map((tab) => (
           <button
             key={tab.type}
+            type="button"
+            aria-pressed={activeTab === tab.type}
             onClick={() => setActiveTab(tab.type)}
             className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${
               activeTab === tab.type
@@ -60,14 +61,16 @@ export default function HomeSearch() {
               <Search className="text-emerald-600 mr-4 shrink-0" size={22} />
               <input
                 type="text"
+                aria-label="Search location"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by county, estate or neighbourhood..."
+                placeholder="Estate, town or county — e.g. Kilimani"
                 className="bg-transparent flex-1 outline-none text-lg text-[#1a2420] placeholder:text-[#9c948a]"
               />
               {query && (
                 <button
                   type="button"
+                  aria-label="Clear search"
                   onClick={() => setQuery("")}
                   className="ml-2 text-[#9c948a] hover:text-[#1a2420] text-xl leading-none"
                 >
@@ -87,9 +90,10 @@ export default function HomeSearch() {
 
       {/* Location chips */}
       <div className="flex flex-wrap justify-center gap-2 mt-4">
-        {QUICK_SEARCHES.map((place) => (
+        {chips.map((place) => (
           <button
             key={place}
+            type="button"
             onClick={() => handleChip(place)}
             className="text-sm text-white/80 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-4 py-1.5 transition-colors"
           >

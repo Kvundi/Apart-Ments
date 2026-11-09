@@ -6,9 +6,10 @@ import { createAuthClient_FreePlan } from "@/lib/supabase/client";
 import Link from "next/link";
 import {
   Plus, Pencil, Trash2, MapPin, BedDouble, Bath,
-  Maximize, Eye, ArrowRight, AlertCircle,
+  Maximize, Eye, ArrowRight, AlertCircle, ImageOff, Home,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 
 type Property = {
   id: string;
@@ -23,7 +24,25 @@ type Property = {
   size_sqm: number | null;
   images: string[] | null;
   created_at: string;
+  verification_status: string | null;
+  admin_notes: string | null;
 };
+
+/** What the team's review means for the owner. */
+function reviewBadge(status: string | null): { label: string; cls: string; hint: string } {
+  switch (status) {
+    case "approved":
+    case "verified":
+      return { label: "Live", cls: "bg-emerald-600 text-white", hint: "Approved and visible to the public." };
+    case "rejected":
+    case "changes_requested":
+      return { label: "Needs changes", cls: "bg-rose-600 text-white", hint: "Our team needs changes before this can go live." };
+    default:
+      return { label: "In review", cls: "bg-amber-400 text-[#1a2420]", hint: "Our team is reviewing this listing — usually within 24 hours." };
+  }
+}
+
+const STATUS_OPTIONS = ["Available", "Under Offer", "Sold", "Rented"];
 
 const STATUS_STYLES: Record<string, string> = {
   Available:     "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -50,7 +69,7 @@ export default function MyListingsPage() {
         const supabase = await createAuthClient_FreePlan(getToken);
         const { data, error } = await supabase
           .from("properties")
-          .select("id, title, price, location, property_type, listing_type, status, bedrooms, bathrooms, size_sqm, images, created_at")
+          .select("id, title, price, location, property_type, listing_type, status, bedrooms, bathrooms, size_sqm, images, created_at, verification_status, admin_notes")
           .eq("user_id", userId)
           .order("created_at", { ascending: false });
 
@@ -68,6 +87,19 @@ export default function MyListingsPage() {
 
     fetchMyListings();
   }, [isLoaded, isSignedIn, user, getToken]);
+
+  const [updating, setUpdating] = useState<string | null>(null);
+  const handleStatus = async (id: string, status: string) => {
+    setUpdating(id);
+    try {
+      const supabase = await createAuthClient_FreePlan(getToken);
+      const { error } = await supabase.from("properties").update({ status }).eq("id", id).eq("user_id", user?.id ?? "");
+      if (error) alert(`Couldn't update status: ${error.message}`);
+      else setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   const handleDelete = async (id: string, title: string) => {
     const confirmed = window.confirm(`Are you sure you want to delete "${title}"?\nThis cannot be undone.`);
@@ -145,7 +177,7 @@ export default function MyListingsPage() {
         {/* Empty state */}
         {!loading && properties.length === 0 && !error && (
           <div className="text-center py-24 bg-white border border-[#e6e2d8] rounded-3xl">
-            <div className="text-8xl mb-6 opacity-20">🏠</div>
+            <Home size={56} className="mx-auto mb-6 text-emerald-700/40" />
             <h2 className="text-2xl font-bold mb-3">No listings yet</h2>
             <p className="text-[#6b6358] mb-8 max-w-sm mx-auto">
               You haven&apos;t listed any properties yet. Add your first one and start reaching buyers and tenants.
@@ -165,11 +197,12 @@ export default function MyListingsPage() {
                 {/* Image */}
                 <div className="h-44 bg-[#f7f5ef] relative flex items-center justify-center overflow-hidden">
                   {p.images?.[0] ? (
-                    <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" />
+                    // eslint-disable-next-line @next/next/no-img-element -- remote Supabase URL
+                    <img src={p.images[0]} alt={p.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                   ) : (
-                    <div className="text-center">
-                      <div className="text-6xl opacity-20">🏠</div>
-                      <p className="text-xs text-[#b3aca0] mt-1">No photo</p>
+                    <div className="text-center text-[#b3aca0]">
+                      <ImageOff size={36} className="mx-auto opacity-60" />
+                      <p className="text-xs mt-1">No photo</p>
                     </div>
                   )}
                   <div className="absolute top-3 left-3">
@@ -177,9 +210,9 @@ export default function MyListingsPage() {
                       {p.status}
                     </span>
                   </div>
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${p.listing_type === "Rent" ? "bg-emerald-600 text-white" : "bg-[#1a2420] text-white"}`}>
-                      For {p.listing_type}
+                  <div className="absolute top-3 right-3" title={reviewBadge(p.verification_status).hint}>
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full shadow-sm ${reviewBadge(p.verification_status).cls}`}>
+                      {reviewBadge(p.verification_status).label}
                     </span>
                   </div>
                 </div>
@@ -200,8 +233,33 @@ export default function MyListingsPage() {
                     {p.size_sqm !== null && <span className="flex items-center gap-1"><Maximize size={14} className="text-emerald-600/70" />{p.size_sqm} m²</span>}
                   </div>
                   <p className="text-xs text-[#9c948a] mt-3">
-                    Listed {new Date(p.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                    For {p.listing_type} · Listed {new Date(p.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
+
+                  {p.admin_notes && (
+                    <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+                      <p className="font-semibold mb-0.5">Note from the Apart Ments team</p>
+                      <p className="whitespace-pre-line">{p.admin_notes}</p>
+                    </div>
+                  )}
+
+                  <label className="mt-3 flex items-center justify-between gap-3 text-sm">
+                    <span className="text-[#6b6358]">Availability</span>
+                    <select
+                      value={p.status}
+                      disabled={updating === p.id}
+                      onChange={(e) => handleStatus(p.id, e.target.value)}
+                      aria-label={`Availability of ${p.title}`}
+                      className="px-3 py-1.5 rounded-lg border border-[#e6e2d8] bg-white text-sm disabled:opacity-50"
+                    >
+                      {STATUS_OPTIONS.map((o) => (
+                        <option key={o} value={o}>{o === "Rented" ? "Let / Rented" : o}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {p.status !== "Available" && (
+                    <p className="text-xs text-[#9c948a] mt-1">Hidden from search while not available.</p>
+                  )}
 
                   {/* Actions */}
                   <div className="flex gap-2 mt-4 pt-4 border-t border-[#e6e2d8]">
@@ -236,12 +294,7 @@ export default function MyListingsPage() {
           </div>
         )}
       </div>
-
-      <footer className="bg-white py-10 border-t border-[#e6e2d8] mt-16">
-        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-[#9c948a]">
-          © 2026 Keja Yangu Ltd. All rights reserved.
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useUser, useAuth, RedirectToSignIn } from "@clerk/nextjs";
 import { createAuthClient_FreePlan } from "@/lib/supabase/client";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 import Link from "next/link";
 import { User, Phone, MapPin, FileText, Save, ArrowLeft, CheckCircle2, AlertCircle, ExternalLink } from "lucide-react";
 
@@ -135,7 +136,7 @@ export default function ProfilePage() {
           </button>
         </form>
       </div>
-      <footer className="bg-white py-10 border-t border-[#e6e2d8] mt-16"><div className="max-w-7xl mx-auto px-6 text-center text-sm text-[#9c948a]">© 2026 Keja Yangu Ltd. All rights reserved.</div></footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,23 +1,36 @@
 @import "tailwindcss";
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #0f1a17;
-  color: #f1ede6;
+  background-color: #ffffff;
+  color: #1a2420;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Visible keyboard focus everywhere, without changing mouse clicks. */
+:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
 }
 
 .card {
-  background-color: #1c2a25;
-  border: 1px solid #2a3d35;
+  background-color: #ffffff;
+  border: 1px solid #e6e2d8;
 }
 
 .input {
-  background-color: #16221d;
-  border: 1px solid #2a3d35;
-  color: #f1ede6;
+  background-color: #ffffff;
+  border: 1px solid #e6e2d8;
+  color: #1a2420;
+}
+.input::placeholder {
+  color: #9c948a;
 }
 
 .input:focus {
+  outline: none;
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
 }

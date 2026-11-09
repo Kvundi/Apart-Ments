@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import { SignUp } from "@clerk/nextjs";
+import AuthShell from "@/components/AuthShell";
+
+export const metadata: Metadata = { title: "Create your account", robots: { index: false } };
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen bg-[#f7f5ef] flex items-center justify-center px-6 py-12">
+    <AuthShell title="Create your free account">
       <SignUp />
-    </div>
+    </AuthShell>
   );
 }

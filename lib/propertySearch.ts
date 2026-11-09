@@ -66,7 +66,7 @@ export function describeFilters(f: SearchFilters): string {
     f.q ? `"${f.q}"` : "",
     f.beds ? `${f.beds}+ beds` : "",
     f.min && f.max ? `${ksh(f.min)}–${ksh(f.max)}` : f.min ? `From ${ksh(f.min)}` : f.max ? `Under ${ksh(f.max)}` : "",
-    f.amenity,
+    amenityList(f.amenity).join(", "),
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : "All properties";
 }
@@ -94,7 +94,8 @@ export function buildPropertyQuery(
   if (f.min && !isNaN(Number(f.min))) query = query.gte("price", Number(f.min));
   if (f.max && !isNaN(Number(f.max))) query = query.lte("price", Number(f.max));
   if (f.beds && !isNaN(Number(f.beds))) query = query.gte("bedrooms", Number(f.beds));
-  if (f.amenity) query = query.contains("amenities", [f.amenity]);
+  const amenities = amenityList(f.amenity);
+  if (amenities.length) query = query.contains("amenities", amenities);
   if (since) query = query.gt("created_at", since);
 
   switch (f.sort) {
@@ -105,4 +106,9 @@ export function buildPropertyQuery(
   }
   // Newest first as the default and as a tie-breaker.
   return query.order("created_at", { ascending: false }).limit(limit);
+}
+
+/** "Parking,Gym" -> ["Parking", "Gym"] (the URL stores must-haves comma-separated). */
+export function amenityList(value: string): string[] {
+  return value.split(",").map((a) => a.trim()).filter(Boolean).slice(0, 8);
 }

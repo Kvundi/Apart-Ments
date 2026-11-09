@@ -40,7 +40,7 @@ export function formatKshShort(n: number): string {
 }
 
 /**
- * Listings the Keja Yangu team has checked. `verification_status` is set during
+ * Listings the Apart Ments team has checked. `verification_status` is set during
  * review; "verified" and "approved" both count so either naming works.
  */
 export function isVerifiedListing(status: string | null | undefined): boolean {

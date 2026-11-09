@@ -6,9 +6,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, X, Image as ImageIcon, Video, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 import { toE164 } from "@/lib/phone";
 import { getCoords } from "@/lib/listing";
 import { LocationPicker } from "@/components/map";
+import { createClient } from "@/lib/supabase/client";
+import { WATER_SOURCES, POWER_METER_LABELS, TITLE_TYPE_LABELS, readDetails } from "@/lib/listingDetails";
 
 const AMENITIES_LIST = [
   "Parking", "Garden", "Balcony", "Swimming Pool", "Gym", 
@@ -19,7 +22,7 @@ const AMENITIES_LIST = [
 
 export default function AddPropertyPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0f1a17] flex items-center justify-center text-[#f1ede6]">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#f7f5ef] flex items-center justify-center text-[#1a2420]">Loading...</div>}>
       <AddProperty />
     </Suspense>
   );
@@ -41,6 +44,23 @@ function AddProperty() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [coords, setCoords] = useState<[number, number] | null>(null);
   const [hadCoords, setHadCoords] = useState(false); // editing a listing that already had a pin
+
+  // Kenyan listing details (deposit, water, power, title…). Shown only once the
+  // 20261106090000_kenyan_listing_details migration has added the columns.
+  const [detailsSupported, setDetailsSupported] = useState(false);
+  const [depositMonths, setDepositMonths] = useState("");
+  const [serviceCharge, setServiceCharge] = useState("");
+  const [waterSources, setWaterSources] = useState<string[]>([]);
+  const [powerMeter, setPowerMeter] = useState("");
+  const [landmark, setLandmark] = useState("");
+  const [titleType, setTitleType] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    createClient().from("properties").select("deposit_months").limit(1)
+      .then(({ error }) => { if (!cancelled) setDetailsSupported(!error); });
+    return () => { cancelled = true; };
+  }, []);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -106,6 +126,13 @@ function AddProperty() {
         setImages(data.images || []);
         setVideos(data.videos || []);
         setAmenities(data.amenities || []);
+        const d = readDetails(data);
+        setDepositMonths(d.deposit_months?.toString() ?? "");
+        setServiceCharge(d.service_charge?.toString() ?? "");
+        setWaterSources(d.water_sources);
+        setPowerMeter(d.power_meter ?? "");
+        setLandmark(d.landmark ?? "");
+        setTitleType(d.title_type ?? "");
         const existing = getCoords(data);
         setCoords(existing);
         setHadCoords(!!existing);
@@ -308,6 +335,16 @@ const compressAndUpload = async (file: File): Promise<string> => {
         ...(coords || hadCoords
           ? { latitude: coords?.[0] ?? null, longitude: coords?.[1] ?? null }
           : {}),
+        ...(detailsSupported
+          ? {
+              deposit_months: formData.listing_type === "Rent" && depositMonths !== "" ? Number(depositMonths) : null,
+              service_charge: serviceCharge !== "" ? Number(serviceCharge) : null,
+              water_sources: waterSources,
+              power_meter: powerMeter || null,
+              landmark: landmark.trim().slice(0, 120) || null,
+              title_type: formData.listing_type === "Sale" && titleType ? titleType : null,
+            }
+          : {}),
         user_id: user?.id,
         verification_status: isEditing ? undefined : 'pending', // Only set pending on new listings
       };
@@ -346,100 +383,163 @@ const compressAndUpload = async (file: File): Promise<string> => {
     }
   };
 
-  if (!isLoaded) return <div className="min-h-screen bg-[#0f1a17] flex items-center justify-center">Loading...</div>;
+  if (!isLoaded) return <div className="min-h-screen bg-[#f7f5ef] flex items-center justify-center">Loading...</div>;
   if (!isSignedIn) return <RedirectToSignIn />;
 
   return (
-    <div className="min-h-screen bg-[#0f1a17] text-[#f1ede6] pb-12">
+    <div className="min-h-screen bg-[#f7f5ef] text-[#1a2420] pb-12">
+      <Navbar />
       <div className="max-w-2xl mx-auto px-6 pt-8">
-        <Link href="/my-listings" className="inline-flex items-center gap-2 text-[#c8b8a8] hover:text-white mb-8 transition">
+        <Link href="/my-listings" className="inline-flex items-center gap-2 text-[#6b6358] hover:text-[#1a2420] mb-8 transition">
           <ArrowLeft size={20} /> Back to My Listings
         </Link>
 
-        <h1 className="text-4xl font-bold mb-2">{isEditing ? "Edit Property" : "List Your Property"}</h1>
-        <p className="text-[#c8b8a8] mb-2">Fill in all the details below</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">{isEditing ? "Edit Property" : "List Your Property"}</h1>
+        <p className="text-[#6b6358] mb-2">Fill in all the details below</p>
         
         {!isEditing && (
-          <div className="flex items-center gap-2 text-amber-400 text-sm mb-8 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2 text-amber-700 text-sm mb-8 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
             <AlertCircle size={16} />
             Your listing will be reviewed by our team before going live. This ensures quality for all users.
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="card rounded-3xl p-8 space-y-8">
+        <form onSubmit={handleSubmit} className="card rounded-3xl p-6 md:p-8 space-y-8 shadow-sm">
           
           {/* Sale / Rent Toggle */}
           <div>
-            <label className="block text-sm font-medium mb-3 text-[#c8b8a8]">Listing Type</label>
+            <label className="block text-sm font-medium mb-3 text-[#6b6358]">Listing Type</label>
             <div className="flex gap-3">
-              <button type="button" onClick={() => setFormData({...formData, listing_type: "Sale"})} className={`flex-1 py-4 rounded-2xl font-medium transition ${formData.listing_type === "Sale" ? "bg-emerald-600 text-white" : "bg-zinc-800 hover:bg-zinc-700"}`}>For Sale</button>
-              <button type="button" onClick={() => setFormData({...formData, listing_type: "Rent"})} className={`flex-1 py-4 rounded-2xl font-medium transition ${formData.listing_type === "Rent" ? "bg-emerald-600 text-white" : "bg-zinc-800 hover:bg-zinc-700"}`}>For Rent</button>
+              <button type="button" onClick={() => setFormData({...formData, listing_type: "Sale"})} className={`flex-1 py-4 rounded-2xl font-medium transition ${formData.listing_type === "Sale" ? "bg-emerald-600 text-white" : "bg-white border border-[#e6e2d8] hover:border-emerald-400"}`}>For Sale</button>
+              <button type="button" onClick={() => setFormData({...formData, listing_type: "Rent"})} className={`flex-1 py-4 rounded-2xl font-medium transition ${formData.listing_type === "Rent" ? "bg-emerald-600 text-white" : "bg-white border border-[#e6e2d8] hover:border-emerald-400"}`}>For Rent</button>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Property Title</label>
+            <label className="block text-sm font-medium mb-2 text-[#6b6358]">Property Title</label>
             <input type="text" required value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" placeholder="3 Bedroom Apartment in Kilimani" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Location</label>
+            <label className="block text-sm font-medium mb-2 text-[#6b6358]">Location</label>
             <input type="text" required value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" placeholder="Kilimani, Nairobi" />
           </div>
 
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Price (KSh)</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Price (KSh)</label>
               <input type="number" required value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Property Type</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Property Type</label>
               <select value={formData.property_type} onChange={(e) => setFormData({...formData, property_type: e.target.value})} className="input w-full px-5 py-4 rounded-2xl">
                 <option value="Apartment">Apartment</option>
                 <option value="House">House</option>
                 <option value="Maisonette">Maisonette</option>
                 <option value="Villa">Villa</option>
                 <option value="Land">Land</option>
+                <option value="Commercial">Commercial</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Bedrooms</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Bedrooms</label>
               <input type="number" value={formData.bedrooms} onChange={(e) => setFormData({...formData, bedrooms: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Bathrooms</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Bathrooms</label>
               <input type="number" value={formData.bathrooms} onChange={(e) => setFormData({...formData, bathrooms: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Size (sqm)</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Size (sqm)</label>
               <input type="number" value={formData.size_sqm} onChange={(e) => setFormData({...formData, size_sqm: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Full Address (Optional)</label>
+            <label className="block text-sm font-medium mb-2 text-[#6b6358]">Full Address (Optional)</label>
             <input type="text" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="input w-full px-5 py-4 rounded-2xl" placeholder="Plot number, street, estate" />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1 text-[#c8b8a8]">Map Pin (Recommended)</label>
-            <p className="text-xs text-[#c8b8a8] mb-3">
+            <label className="block text-sm font-medium mb-1 text-[#6b6358]">Map Pin (Recommended)</label>
+            <p className="text-xs text-[#6b6358] mb-3">
               Tap the map where the property is, or use your location if you&apos;re there now. Buyers only see the
               approximate area, never the exact pin. Listings with a pin appear in map search.
             </p>
             <LocationPicker value={coords} onChange={setCoords} />
           </div>
 
+          {detailsSupported && (
+            <div className="rounded-2xl p-6 space-y-5 border border-[#e6e2d8] bg-[#fbfaf6]">
+              <div>
+                <h3 className="font-semibold text-lg">Good to know</h3>
+                <p className="text-sm text-[#6b6358]">The questions {formData.listing_type === "Rent" ? "tenants" : "buyers"} ask first. Answering them gets you better enquiries.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {formData.listing_type === "Rent" ? (
+                  <label className="block">
+                    <span className="block text-sm font-medium mb-2 text-[#6b6358]">Deposit (months of rent)</span>
+                    <select value={depositMonths} onChange={(e) => setDepositMonths(e.target.value)} className="input w-full px-4 py-3 rounded-xl">
+                      <option value="">Not specified</option>
+                      <option value="0">No deposit</option>
+                      {[1, 2, 3].map((m) => <option key={m} value={m}>{m} month{m > 1 ? "s" : ""}</option>)}
+                    </select>
+                  </label>
+                ) : (
+                  <label className="block">
+                    <span className="block text-sm font-medium mb-2 text-[#6b6358]">Title type</span>
+                    <select value={titleType} onChange={(e) => setTitleType(e.target.value)} className="input w-full px-4 py-3 rounded-xl">
+                      <option value="">Not specified</option>
+                      {Object.entries(TITLE_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </label>
+                )}
+                <label className="block">
+                  <span className="block text-sm font-medium mb-2 text-[#6b6358]">Service charge (KSh / month)</span>
+                  <input type="number" min={0} value={serviceCharge} onChange={(e) => setServiceCharge(e.target.value)} placeholder="Leave blank if none" className="input w-full px-4 py-3 rounded-xl" />
+                </label>
+                <label className="block">
+                  <span className="block text-sm font-medium mb-2 text-[#6b6358]">Electricity</span>
+                  <select value={powerMeter} onChange={(e) => setPowerMeter(e.target.value)} className="input w-full px-4 py-3 rounded-xl">
+                    <option value="">Not specified</option>
+                    {Object.entries(POWER_METER_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="block text-sm font-medium mb-2 text-[#6b6358]">Nearby landmark</span>
+                  <input value={landmark} maxLength={120} onChange={(e) => setLandmark(e.target.value)} placeholder="e.g. Behind Yaya Centre" className="input w-full px-4 py-3 rounded-xl" />
+                </label>
+              </div>
+
+              <fieldset>
+                <legend className="block text-sm font-medium mb-2 text-[#6b6358]">Water</legend>
+                <div className="flex flex-wrap gap-2">
+                  {WATER_SOURCES.map((w) => {
+                    const on = waterSources.includes(w);
+                    return (
+                      <button key={w} type="button" aria-pressed={on}
+                        onClick={() => setWaterSources(on ? waterSources.filter((x) => x !== w) : [...waterSources, w])}
+                        className={`px-4 py-2 rounded-full text-sm border transition ${on ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-[#e6e2d8] hover:border-emerald-300"}`}>
+                        {w}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </div>
+          )}
+
           {/* Contact Info */}
-          <div className="card rounded-2xl p-6 space-y-4 border border-[#2a3d35]">
+          <div className="card rounded-2xl p-6 space-y-4 border border-[#e6e2d8]">
             <h3 className="font-semibold text-lg">Contact Information</h3>
-            <p className="text-sm text-[#c8b8a8]">This is shown on your listing so interested buyers and tenants can reach you.</p>
+            <p className="text-sm text-[#6b6358]">This is shown on your listing so interested buyers and tenants can reach you.</p>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Owner / Agent Name *</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Owner / Agent Name *</label>
               <input
                 type="text"
                 required
@@ -451,7 +551,7 @@ const compressAndUpload = async (file: File): Promise<string> => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Phone Number *</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Phone Number *</label>
               <input
                 type="tel"
                 required
@@ -463,7 +563,7 @@ const compressAndUpload = async (file: File): Promise<string> => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Email (Optional)</label>
+              <label className="block text-sm font-medium mb-2 text-[#6b6358]">Email (Optional)</label>
               <input 
                 type="email" 
                 value={formData.contact_email} 
@@ -476,10 +576,10 @@ const compressAndUpload = async (file: File): Promise<string> => {
 
           {/* Amenities */}
           <div>
-            <label className="block text-sm font-medium mb-3 text-[#c8b8a8]">Amenities & Features</label>
+            <label className="block text-sm font-medium mb-3 text-[#6b6358]">Amenities & Features</label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {AMENITIES_LIST.map((amenity) => (
-                <label key={amenity} className={`flex items-center gap-2 p-3 rounded-2xl border cursor-pointer transition ${amenities.includes(amenity) ? 'border-emerald-500 bg-emerald-900/30' : 'border-[#2a3d35] hover:border-gray-600'}`}>
+                <label key={amenity} className={`flex items-center gap-2 p-3 rounded-2xl border cursor-pointer transition ${amenities.includes(amenity) ? 'border-emerald-500 bg-emerald-50' : 'border-[#e6e2d8] hover:border-emerald-300'}`}>
                   <input type="checkbox" checked={amenities.includes(amenity)} onChange={() => toggleAmenity(amenity)} className="w-5 h-5 accent-emerald-500" />
                   <span>{amenity}</span>
                 </label>
@@ -488,20 +588,20 @@ const compressAndUpload = async (file: File): Promise<string> => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2 text-[#c8b8a8]">Description</label>
+            <label className="block text-sm font-medium mb-2 text-[#6b6358]">Description</label>
             <textarea rows={6} value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="input w-full px-5 py-4 rounded-3xl" placeholder="Describe the property, neighborhood, and any special features..." />
           </div>
 
           {/* Photo Upload */}
           <div>
-            <label className="block text-sm font-medium mb-3 text-[#c8b8a8]">Property Photos *</label>
-            <div className="border-2 border-dashed border-[#2a3d35] rounded-3xl p-10 text-center hover:border-emerald-500 transition">
+            <label className="block text-sm font-medium mb-3 text-[#6b6358]">Property Photos *</label>
+            <div className="border-2 border-dashed border-[#e6e2d8] rounded-3xl p-10 text-center hover:border-emerald-500 transition">
               <ImageIcon size={48} className="mx-auto text-emerald-500 mb-4" />
               <input type="file" multiple accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" id="upload-images" />
               <label htmlFor="upload-images" className="mt-4 cursor-pointer bg-emerald-600 hover:bg-emerald-500 px-8 py-3 rounded-2xl inline-block">
                 {uploading ? "Compressing & Uploading..." : "Select Photos"}
               </label>
-              <p className="text-sm text-[#c8b8a8] mt-3">At least one photo required. Max 10 photos.</p>
+              <p className="text-sm text-[#6b6358] mt-3">At least one photo required. Max 10 photos.</p>
             </div>
 
             {images.length > 0 && (
@@ -520,14 +620,14 @@ const compressAndUpload = async (file: File): Promise<string> => {
 
           {/* Video Upload (Optional) */}
           <div>
-            <label className="block text-sm font-medium mb-3 text-[#c8b8a8]">Property Videos (Optional)</label>
-            <div className="border-2 border-dashed border-[#2a3d35] rounded-3xl p-10 text-center hover:border-emerald-500 transition">
+            <label className="block text-sm font-medium mb-3 text-[#6b6358]">Property Videos (Optional)</label>
+            <div className="border-2 border-dashed border-[#e6e2d8] rounded-3xl p-10 text-center hover:border-emerald-500 transition">
               <Video size={48} className="mx-auto text-emerald-500 mb-4" />
               <input type="file" multiple accept="video/*" onChange={handleVideoUpload} disabled={uploadingVideo} className="hidden" id="upload-videos" />
-              <label htmlFor="upload-videos" className="mt-4 cursor-pointer bg-zinc-800 hover:bg-zinc-700 px-8 py-3 rounded-2xl inline-block">
+              <label htmlFor="upload-videos" className="mt-4 cursor-pointer bg-white border border-[#e6e2d8] hover:border-emerald-400 px-8 py-3 rounded-2xl inline-block">
                 {uploadingVideo ? "Uploading..." : "Add Videos"}
               </label>
-              <p className="text-sm text-[#c8b8a8] mt-3">Short video tours increase inquiries by 40%</p>
+              <p className="text-sm text-[#6b6358] mt-3">Short video tours increase inquiries by 40%</p>
             </div>
 
             {videos.length > 0 && (
@@ -544,12 +644,12 @@ const compressAndUpload = async (file: File): Promise<string> => {
             )}
           </div>
 
-          <button type="submit" disabled={loading || images.length === 0} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 text-white font-semibold py-4 rounded-2xl text-lg transition">
+          <button type="submit" disabled={loading || images.length === 0} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-[#d6d1c4] text-white font-semibold py-4 rounded-2xl text-lg transition">
             {loading ? "Saving..." : isEditing ? "Update Property" : "Submit for Review"}
           </button>
 
           {!isEditing && (
-            <p className="text-center text-sm text-[#c8b8a8]">
+            <p className="text-center text-sm text-[#6b6358]">
               By submitting, you agree to our quality standards. Listings are typically reviewed within 24 hours.
             </p>
           )}

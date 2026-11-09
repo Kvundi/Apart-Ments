@@ -4,37 +4,33 @@ import { useState } from "react";
 import Link from "next/link";
 import { Calculator } from "lucide-react";
 import { formatKsh } from "@/lib/listing";
+import { DEFAULTS, monthlyPayment } from "@/lib/mortgage";
 
-// Rough Kenyan defaults (late 2025): commercial mortgage rates ~13–15%, KMRC-backed
-// affordable loans ~9.5–10%, typical deposit 10–20%, terms up to 20–25 years.
-// The user can change every input — this is an estimate, not an offer.
-const DEFAULT_RATE = 13.5;
-const DEFAULT_TERM = 20;
-const DEFAULT_DEPOSIT_PCT = 10;
-
-function monthlyRepayment(principal: number, annualRatePct: number, years: number) {
-  const r = annualRatePct / 100 / 12;
-  const n = years * 12;
-  if (principal <= 0 || n <= 0) return 0;
-  if (r === 0) return principal / n;
-  return (principal * r) / (1 - Math.pow(1 + r, -n));
-}
+// Defaults and maths shared with the full calculator (lib/mortgage.ts).
+const DEFAULT_RATE = DEFAULTS.rate;
+const DEFAULT_TERM = DEFAULTS.years;
+const DEFAULT_DEPOSIT_PCT = DEFAULTS.depositPct;
+const monthlyRepayment = monthlyPayment;
 
 /**
  * Zillow's "Est. payment" box, adapted for Kenya:
  * - For sale: monthly mortgage repayment with editable deposit / rate / term.
  * - For rent: upfront move-in cost (first month + deposit), the number Kenyan renters actually budget for.
  */
-export default function PaymentEstimate({ price, isRent }: { price: number; isRent: boolean }) {
+export default function PaymentEstimate({
+  price, isRent, depositMonths = null, serviceCharge = null,
+}: {
+  price: number; isRent: boolean; depositMonths?: number | null; serviceCharge?: number | null;
+}) {
   const [depositPct, setDepositPct] = useState(DEFAULT_DEPOSIT_PCT);
   const [rate, setRate] = useState(DEFAULT_RATE);
   const [years, setYears] = useState(DEFAULT_TERM);
-  const [depositMonths, setDepositMonths] = useState(2);
+  const [depMonths, setDepMonths] = useState(depositMonths ?? 2);
 
   if (!price || price <= 0) return null;
 
   if (isRent) {
-    const deposit = price * depositMonths;
+    const deposit = price * depMonths;
     return (
       <div className="border border-[#e6e2d8] rounded-2xl p-5">
         <div className="flex items-center gap-2 mb-1">
@@ -45,15 +41,20 @@ export default function PaymentEstimate({ price, isRent }: { price: number; isRe
         <p className="text-sm text-[#6b6358] mt-1">
           First month ({formatKsh(price)}) + deposit ({formatKsh(deposit)})
         </p>
+        {serviceCharge ? (
+          <p className="text-sm text-[#6b6358] mt-1">Plus a service charge of {formatKsh(serviceCharge)} a month.</p>
+        ) : null}
         <div className="mt-4">
-          <label className="text-xs font-semibold text-[#6b6358] uppercase tracking-wider">Deposit</label>
+          <label className="text-xs font-semibold text-[#6b6358] uppercase tracking-wider">
+            Deposit{depositMonths !== null ? ` · owner asks for ${depositMonths} month${depositMonths === 1 ? "" : "s"}` : ""}
+          </label>
           <div className="flex gap-2 mt-2">
-            {[1, 2, 3].map((m) => (
+            {[...new Set([1, 2, 3, ...(depositMonths && depositMonths > 0 ? [depositMonths] : [])])].sort((a, b) => a - b).map((m) => (
               <button
                 key={m}
                 type="button"
-                onClick={() => setDepositMonths(m)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${depositMonths === m ? "bg-emerald-600 text-white" : "bg-[#f7f5ef] hover:bg-[#eceae4]"}`}
+                onClick={() => setDepMonths(m)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${depMonths === m ? "bg-emerald-600 text-white" : "bg-[#f7f5ef] hover:bg-[#eceae4]"}`}
               >
                 {m} month{m > 1 ? "s" : ""}
               </button>
@@ -80,6 +81,11 @@ export default function PaymentEstimate({ price, isRent }: { price: number; isRe
       <p className="text-3xl font-bold text-[#1a2420] mt-2">
         {formatKsh(monthly)}<span className="text-base font-normal text-[#6b6358]"> /month</span>
       </p>
+      {serviceCharge ? (
+        <p className="text-sm text-[#6b6358] mt-1">
+          {formatKsh(monthly + serviceCharge)} a month including the {formatKsh(serviceCharge)} service charge.
+        </p>
+      ) : null}
       <p className="text-sm text-[#6b6358] mt-1">
         Loan of {formatKsh(loan)} after a {formatKsh(deposit)} deposit
       </p>
@@ -105,8 +111,8 @@ export default function PaymentEstimate({ price, isRent }: { price: number; isRe
         <p className="text-xs text-[#9c948a]">
           Estimate only. Excludes stamp duty (4% in municipalities), legal and valuation fees, and insurance.
         </p>
-        <Link href="/loans" className="text-sm font-semibold text-emerald-600 hover:underline">
-          Compare mortgage rates →
+        <Link href={`/loans/calculator?price=${Math.round(price)}`} className="text-sm font-semibold text-emerald-700 hover:underline">
+          Full breakdown and upfront costs →
         </Link>
       </div>
     </div>

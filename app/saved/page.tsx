@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { Heart, Bell, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 import PropertyCard, { toCardData, type PropertyCardData } from "@/components/PropertyCard";
 import { createClient, createAuthClient } from "@/lib/supabase/client";
 import { useSavedHomes } from "@/lib/savedHomes";
@@ -17,6 +18,7 @@ export default function SavedPage() {
       <Suspense fallback={<div className="max-w-7xl mx-auto px-6 py-10 text-[#6b6358]">Loading…</div>}>
         <Saved />
       </Suspense>
+      <SiteFooter />
     </div>
   );
 }

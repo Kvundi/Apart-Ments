@@ -1,9 +1,13 @@
+import type { Metadata } from "next";
 import { SignIn } from "@clerk/nextjs";
+import AuthShell from "@/components/AuthShell";
+
+export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-[#f7f5ef] flex items-center justify-center px-6 py-12">
+    <AuthShell title="Welcome back">
       <SignIn />
-    </div>
+    </AuthShell>
   );
 }

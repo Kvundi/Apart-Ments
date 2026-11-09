@@ -5,7 +5,7 @@
 
 import { useSyncExternalStore } from "react";
 
-const KEY = "keja-yangu:saved-homes";
+const KEY = "apart-ments:saved-homes";
 const EMPTY: string[] = [];
 const listeners = new Set<() => void>();
 let cache: string[] | null = null;

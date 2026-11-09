@@ -10,8 +10,8 @@
 //   CRON_SECRET                 any long random string
 //   SUPABASE_SERVICE_ROLE_KEY   Supabase → Project Settings → API → service_role (bypasses RLS)
 //   RESEND_API_KEY              https://resend.com → API Keys
-//   ALERTS_FROM_EMAIL           e.g. "Keja Yangu <alerts@your-domain.co.ke>" (domain verified in Resend)
-//   NEXT_PUBLIC_SITE_URL        e.g. "https://kejayangu.co.ke" (used for links in the email)
+//   ALERTS_FROM_EMAIL           e.g. "Apart Ments <alerts@your-domain.co.ke>" (domain verified in Resend)
+//   NEXT_PUBLIC_SITE_URL        e.g. "https://your-domain.co.ke" (used for links in the email)
 
 import { createClient } from "@supabase/supabase-js";
 import { parseFilters, buildPropertyQuery } from "@/lib/propertySearch";

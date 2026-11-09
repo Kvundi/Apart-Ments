@@ -6,6 +6,9 @@ import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
 
 const PROPERTY_TYPES = ["Apartment", "House", "Maisonette", "Villa", "Land", "Commercial"];
 const BED_OPTIONS = [{ label: "Any", value: "any" }, { label: "1+", value: "1" }, { label: "2+", value: "2" }, { label: "3+", value: "3" }, { label: "4+", value: "4" }, { label: "5+", value: "5" }];
+// Must-haves (values match the amenity names used on the Add Listing form).
+const MUST_HAVES = ["Parking", "Security", "Furnished", "Gated Community", "Swimming Pool", "Gym", "Garden", "Balcony", "Solar Power", "Water Tank", "Servants Quarter", "Lift/Elevator"];
+
 const PRICE_PRESETS_SALE = [
   { label: "Under 5M",   min: "",         max: "5000000"  },
   { label: "5M – 15M",  min: "5000000",  max: "15000000" },
@@ -30,6 +33,11 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
   const [beds,          setBeds]          = useState(currentParams.beds     || "any");
   const [location,      setLocation]      = useState(currentParams.location || "");
   const [showPresets,   setShowPresets]   = useState(false);
+  const [mustHaves,     setMustHaves]     = useState<string[]>((currentParams.amenity || "").split(",").filter(Boolean));
+  const [showAllMust,   setShowAllMust]   = useState(false);
+  const [mobileOpen,    setMobileOpen]    = useState(false);
+  const activeCount = ["type", "property", "location", "min", "max", "beds"].filter((k) => currentParams[k]).length
+    + (currentParams.amenity ? currentParams.amenity.split(",").filter(Boolean).length : 0);
 
   const applyFilters = () => {
     const params = new URLSearchParams();
@@ -40,7 +48,7 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
     if (beds && beds !== "any") params.set("beds",     beds);
     if (location)               params.set("location", location);
     if (currentParams.q)        params.set("q",        currentParams.q);
-    if (currentParams.amenity)  params.set("amenity",  currentParams.amenity);
+    if (mustHaves.length)       params.set("amenity",  mustHaves.join(","));
     if (currentParams.sort)     params.set("sort",     currentParams.sort);
     if (currentParams.view)     params.set("view",     currentParams.view);
     router.push(`/properties?${params.toString()}`);
@@ -48,14 +56,25 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
 
   const clearFilters = () => {
     setListingType(""); setPropertyType(""); setMinPrice("");
-    setMaxPrice(""); setBeds("any"); setLocation("");
+    setMaxPrice(""); setBeds("any"); setLocation(""); setMustHaves([]);
     router.push(currentParams.view === "map" ? "/properties?view=map" : "/properties");
   };
 
   const pricePresets = listingType === "rent" ? PRICE_PRESETS_RENT : PRICE_PRESETS_SALE;
 
   return (
-    <div className="bg-white border border-[#e6e2d8] rounded-3xl p-6 space-y-6 shadow-sm">
+    <>
+      {/* Mobile: collapsed behind a button so results come first */}
+      <button
+        type="button"
+        onClick={() => setMobileOpen(!mobileOpen)}
+        aria-expanded={mobileOpen}
+        className="lg:hidden w-full flex items-center justify-between bg-white border border-[#e6e2d8] rounded-2xl px-5 py-3.5 font-semibold shadow-sm"
+      >
+        <span className="flex items-center gap-2"><SlidersHorizontal size={18} className="text-emerald-600" /> Filters{activeCount > 0 ? ` (${activeCount})` : ""}</span>
+        {mobileOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+      </button>
+    <div className={`${mobileOpen ? "block mt-3" : "hidden"} lg:block bg-white border border-[#e6e2d8] rounded-3xl p-6 space-y-6 shadow-sm`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 font-bold text-[#1a2420]">
           <SlidersHorizontal size={18} className="text-emerald-600" />Filters
@@ -108,13 +127,33 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
           </div>
         )}
         <div className="flex gap-2 items-center">
-          <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min" className="flex-1 px-3 py-2.5 rounded-xl border border-[#e6e2d8] text-sm outline-none focus:border-emerald-400" />
+          <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min" aria-label="Minimum price" className="flex-1 min-w-0 w-full px-3 py-2.5 rounded-xl border border-[#e6e2d8] text-sm outline-none focus:border-emerald-400" />
           <span className="text-[#9c948a] text-sm shrink-0">to</span>
-          <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max" className="flex-1 px-3 py-2.5 rounded-xl border border-[#e6e2d8] text-sm outline-none focus:border-emerald-400" />
+          <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max" aria-label="Maximum price" className="flex-1 min-w-0 w-full px-3 py-2.5 rounded-xl border border-[#e6e2d8] text-sm outline-none focus:border-emerald-400" />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-[#6b6358] uppercase tracking-wider mb-2">Must-haves</label>
+        <div className="flex flex-wrap gap-2">
+          {(showAllMust ? MUST_HAVES : MUST_HAVES.slice(0, 6)).map((a) => {
+            const on = mustHaves.includes(a);
+            return (
+              <button key={a} type="button" aria-pressed={on}
+                onClick={() => setMustHaves(on ? mustHaves.filter((x) => x !== a) : [...mustHaves, a])}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${on ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-[#e6e2d8] text-[#1a2420] hover:border-emerald-300"}`}>
+                {a}
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" onClick={() => setShowAllMust(!showAllMust)} className="mt-2 text-xs text-emerald-700 hover:underline">
+          {showAllMust ? "Show fewer" : `Show all ${MUST_HAVES.length}`}
+        </button>
       </div>
 
       <button onClick={applyFilters} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 rounded-2xl transition-colors text-sm">Apply Filters</button>
     </div>
+    </>
   );
 }

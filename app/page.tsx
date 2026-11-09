@@ -1,51 +1,47 @@
 import Link from "next/link";
 import {
-  MapPin,
-  BedDouble,
-  Bath,
-  Maximize,
-  ShieldCheck,
-  TrendingUp,
-  Users,
+  ShieldCheck, MessageCircle, Flag, Home, KeyRound, HandCoins, Calculator,
+  Percent, ArrowRight, MapPin, BadgeCheck, Search,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 import HomeSearch from "@/components/HomeSearch";
+import PropertyCard from "@/components/PropertyCard";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import { createClient } from "@/lib/supabase/server";
-
-type Property = {
-  id: number | string;
-  title: string;
-  price: number;
-  location: string;
-  property_type: string;
-  listing_type: string;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  size_sqm: number | null;
-  images: string[] | null;
-  is_new?: boolean;
-};
+import { toCardData } from "@/lib/listing";
+import { areaOf, POPULAR_AREAS } from "@/lib/areas";
 
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const { data: dbProperties } = await supabase
-    .from("properties")
-    .select("id, title, price, location, property_type, listing_type, bedrooms, bathrooms, size_sqm, images")
-    .eq("status", "Available")
-    .order("created_at", { ascending: false })
-    .limit(8);
+  const [{ data: rows }, { count: agentCount }] = await Promise.all([
+    supabase.from("properties").select("*").eq("status", "Available").order("created_at", { ascending: false }).limit(500),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_agent", true),
+  ]);
 
-  const properties: Property[] = (dbProperties as Property[]) || [];
+  const all = (rows ?? []).map((r) => toCardData(r));
+  const latest = all.slice(0, 8);
+  const forSale = all.filter((p) => p.listing_type === "Sale").length;
+  const forRent = all.filter((p) => p.listing_type === "Rent").length;
 
-  const featured = properties.slice(0, 4);
-  const recent   = properties.slice(4, 8);
+  // Real area counts from live listings, topped up with well-known areas.
+  const counts = new Map<string, number>();
+  for (const p of all) {
+    const a = areaOf(p.location);
+    if (a) counts.set(a, (counts.get(a) ?? 0) + 1);
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name);
+  const areas = [...new Set([...ranked, ...POPULAR_AREAS.map((a) => a.name)])].slice(0, 8);
+  const chips = [...new Set([...ranked, ...POPULAR_AREAS.map((a) => a.name)])].slice(0, 6);
 
-  const cities = [
-    { name: "Nairobi", count: "14,820", bg: "from-emerald-100 to-white" },
-    { name: "Mombasa", count: "3,410",  bg: "from-cyan-100 to-white"   },
-    { name: "Kisumu",  count: "1,640",  bg: "from-amber-100 to-white"  },
-    { name: "Nakuru",  count: "980",    bg: "from-violet-100 to-white" },
+  const stats = [
+    { value: all.length.toLocaleString("en-KE"), label: "Live listings" },
+    { value: forSale.toLocaleString("en-KE"), label: "For sale" },
+    { value: forRent.toLocaleString("en-KE"), label: "For rent" },
+    (agentCount ?? 0) >= 5
+      ? { value: (agentCount ?? 0).toLocaleString("en-KE"), label: "Agents" }
+      : { value: counts.size.toLocaleString("en-KE"), label: counts.size === 1 ? "Area" : "Areas" },
   ];
 
   return (
@@ -53,219 +49,178 @@ export default async function HomePage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative min-h-[560px] flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0a1628] via-[#1a3a6e] to-[#0f2d55]">
+      <section className="relative overflow-hidden bg-[#0c2a20]">
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-[0.18]"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1400&q=80')" }}
+          className="absolute inset-0 bg-cover bg-center opacity-30"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1600&q=80')" }}
         />
-        <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-6 text-sm text-white/90">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0c2a20]/40 via-[#0c2a20]/60 to-[#0c2a20]" />
+        <div className="relative z-10 max-w-5xl mx-auto px-6 pt-20 pb-24 md:pt-28 md:pb-32 text-center">
+          <p className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 mb-6 text-sm text-white/90">
             <ShieldCheck size={16} className="text-emerald-300" />
-            Kenya&apos;s most trusted property marketplace
-          </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-6 leading-[1.05] text-white">
-            Find homes you&apos;ll <span className="text-emerald-300">love</span> in Kenya
-          </h1>
-          <p className="text-xl md:text-2xl text-white/70 mb-10 max-w-2xl mx-auto">
-            Verified properties from real homeowners and agents — across all 47 counties.
+            Every listing reviewed by our team · No viewing fees
           </p>
-          <HomeSearch />
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight mb-6 leading-[1.05] text-white">
+            Find a home you&apos;ll <span className="text-emerald-300">love</span> in Kenya
+          </h1>
+          <p className="text-lg md:text-xl text-white/75 mb-10 max-w-2xl mx-auto">
+            Homes, apartments and land for sale and rent — straight from owners and agents, on WhatsApp.
+          </p>
+          <HomeSearch chips={chips} />
         </div>
       </section>
 
-      {/* Stats */}
-      <div className="bg-[#f7f5ef] py-8 border-b border-[#e6e2d8]">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            ["24,300+", "Active Listings"],
-            ["1,200+",  "Verified Homeowners"],
-            ["47",      "Counties Covered"],
-            ["98%",     "Satisfaction Rate"],
-          ].map(([v, l]) => (
-            <div key={l}>
-              <div className="text-3xl md:text-4xl font-bold text-emerald-600">{v}</div>
-              <div className="text-sm text-[#6b6358] mt-1">{l}</div>
+      {/* Live stats */}
+      <div className="border-b border-[#e6e2d8] bg-white">
+        <div className="max-w-5xl mx-auto px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          {stats.map((s) => (
+            <div key={s.label}>
+              <div className="text-2xl md:text-3xl font-bold text-[#1a2420]">{s.value}</div>
+              <div className="text-xs uppercase tracking-wider text-[#6b6358] mt-1">{s.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Featured Properties */}
-      {properties.length > 0 ? (
-        <section className="max-w-7xl mx-auto px-6 py-20">
-          <SectionHeader eyebrow="Hand-picked" title="Featured Properties" href="/properties" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featured.map((p) => (
-              <PropertyCard key={p.id} property={p} highlightBadge />
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section className="max-w-7xl mx-auto px-6 py-20 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-[#1a2420]">Be the first to list</h2>
-          <p className="text-[#6b6358] mb-8 text-lg">
-            No properties yet — add the first listing and it will appear here.
-          </p>
-          <Link
-            href="/add"
-            className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-10 py-4 rounded-2xl transition-colors"
-          >
-            Post a Listing
-          </Link>
-        </section>
-      )}
-
-      {/* Explore by City */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
-        <SectionHeader eyebrow="Nationwide coverage" title="Explore by City" href="/properties" />
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {cities.map((city) => (
-            <Link
-              key={city.name}
-              href={`/properties?location=${encodeURIComponent(city.name)}`}
-              className={`group relative h-40 rounded-2xl bg-gradient-to-br ${city.bg} border border-[#e6e2d8] hover:border-emerald-400 transition-all duration-300 hover:-translate-y-1 flex items-end p-5`}
-            >
-              <div>
-                <p className="text-xl font-bold text-[#1a2420]">{city.name}</p>
-                <p className="text-sm text-[#6b6358]">{city.count} listings</p>
-              </div>
+      {/* Buy / Rent / Sell — Zillow-style entry points */}
+      <section className="max-w-7xl mx-auto px-6 pt-10 md:pt-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          {[
+            { icon: Home, title: "Buy a home", body: "Browse houses, apartments and land, then estimate your monthly repayment on every listing.", cta: "Browse homes", href: "/properties?type=sale" },
+            { icon: KeyRound, title: "Rent a home", body: "See the full move-in cost upfront and message the owner directly — never pay to view.", cta: "Find rentals", href: "/properties?type=rent" },
+            { icon: HandCoins, title: "Sell or let", body: "List for free, reach serious buyers and tenants, and get a price estimate from comparable listings.", cta: "Post a listing", href: "/add" },
+          ].map((c) => (
+            <Link key={c.title} href={c.href} className="group rounded-3xl border border-[#e6e2d8] p-5 md:p-7 hover:border-emerald-300 hover:shadow-lg transition-all bg-white">
+              <span className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-3 md:mb-5"><c.icon size={22} /></span>
+              <h2 className="text-xl font-bold mb-2">{c.title}</h2>
+              <p className="text-[#6b6358] text-sm leading-relaxed mb-3 md:mb-5">{c.body}</p>
+              <span className="inline-flex items-center gap-1.5 text-emerald-700 font-semibold text-sm group-hover:gap-2.5 transition-all">
+                {c.cta} <ArrowRight size={16} />
+              </span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Recently Added */}
-      {recent.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 pb-20">
-          <SectionHeader eyebrow="Just listed" title="Recently Added" href="/properties" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {recent.map((p) => (
-              <PropertyCard key={p.id} property={p} />
+      <RecentlyViewed />
+
+      {/* Latest listings */}
+      <section className="max-w-7xl mx-auto px-6 pt-20">
+        <SectionHeader eyebrow="Just listed" title="Newest homes on Apart Ments" href="/properties" />
+        {latest.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {latest.map((p) => <PropertyCard key={p.id} p={p} />)}
+          </div>
+        ) : (
+          <div className="text-center py-16 rounded-3xl border border-[#e6e2d8] bg-[#f7f5ef]">
+            <h3 className="text-xl font-bold mb-2">Be the first to list</h3>
+            <p className="text-[#6b6358] mb-6">New listings appear here as soon as our team approves them.</p>
+            <Link href="/add" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-8 py-3 rounded-2xl">Post a listing</Link>
+          </div>
+        )}
+      </section>
+
+      {/* Explore by area */}
+      <section className="max-w-7xl mx-auto px-6 pt-20">
+        <SectionHeader eyebrow="Explore" title="Popular areas" href="/properties" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {areas.map((name, i) => {
+            const n = counts.get(name) ?? 0;
+            const meta = POPULAR_AREAS.find((a) => a.name === name);
+            return (
+              <Link
+                key={name}
+                href={`/properties?location=${encodeURIComponent(name)}`}
+                className={`group relative h-36 rounded-2xl overflow-hidden border border-[#e6e2d8] hover:border-emerald-400 transition-all hover:-translate-y-0.5 p-5 flex flex-col justify-end ${AREA_TINTS[i % AREA_TINTS.length]}`}
+              >
+                <MapPin size={20} className="absolute top-4 right-4 text-emerald-700/40" />
+                <p className="text-lg font-bold text-[#1a2420]">{name}</p>
+                <p className="text-sm text-[#6b6358]">
+                  {n > 0 ? `${n} listing${n === 1 ? "" : "s"}` : meta?.region ?? "Explore homes"}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Tools */}
+      <section className="max-w-7xl mx-auto px-6 pt-20">
+        <SectionHeader eyebrow="Plan with confidence" title="Tools for every step" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[
+            { icon: Calculator, title: "Mortgage calculator", body: "Monthly repayment, upfront costs and how much you can borrow.", href: "/loans/calculator" },
+            { icon: Search, title: "Home value estimate", body: "Price or rent range from comparable listings in your area.", href: "/valuation" },
+            { icon: Percent, title: "Affordable housing", body: "Boma Yangu, the Housing Levy and KMRC-backed loans explained.", href: "/loans/government" },
+            { icon: ShieldCheck, title: "Renter safety guide", body: "Spot viewing-fee scams and check a landlord before you pay.", href: "/guides/rent" },
+          ].map((t) => (
+            <Link key={t.title} href={t.href} className="group rounded-2xl bg-[#f7f5ef] border border-[#e6e2d8] p-6 hover:bg-white hover:border-emerald-300 hover:shadow-md transition-all">
+              <t.icon size={26} className="text-emerald-700 mb-4" />
+              <h3 className="font-semibold mb-1.5">{t.title}</h3>
+              <p className="text-sm text-[#6b6358] leading-relaxed">{t.body}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Trust */}
+      <section className="max-w-7xl mx-auto px-6 pt-20">
+        <div className="rounded-3xl bg-[#10201a] text-white p-8 md:p-12">
+          <p className="text-emerald-300 text-sm font-semibold uppercase tracking-wider mb-3">Why Apart Ments</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-10 max-w-2xl">Built so you only deal with real homes and real owners</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { icon: BadgeCheck, title: "Reviewed before it goes live", body: "Our team checks every listing before it's published, and anything reported is reviewed again." },
+              { icon: MessageCircle, title: "Talk to the owner directly", body: "Message or call the person who listed the home on WhatsApp — no sign-up needed to make contact." },
+              { icon: Flag, title: "Report anything suspicious", body: "Asked for a viewing fee or a deposit before viewing? Report the listing in two taps." },
+            ].map((c) => (
+              <div key={c.title}>
+                <c.icon size={28} className="text-emerald-300 mb-4" />
+                <h3 className="font-semibold text-lg mb-2">{c.title}</h3>
+                <p className="text-sm text-[#b8c6be] leading-relaxed">{c.body}</p>
+              </div>
             ))}
           </div>
-        </section>
-      )}
-
-      {/* Trust cards */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[
-            { icon: <ShieldCheck className="text-emerald-600" size={26} />, title: "Verified listings",   desc: "Every property is checked before it goes live, so you only browse real, available homes." },
-            { icon: <TrendingUp  className="text-emerald-600" size={26} />, title: "Fair market pricing", desc: "We surface up-to-date pricing trends so you know if a listing is a good deal." },
-            { icon: <Users       className="text-emerald-600" size={26} />, title: "Direct contact",      desc: "Message homeowners and agents directly — no unnecessary middlemen or hidden fees." },
-          ].map((c) => (
-            <div key={c.title} className="bg-white border border-[#e6e2d8] rounded-2xl p-6 shadow-sm">
-              <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mb-4">{c.icon}</div>
-              <h3 className="font-semibold text-lg mb-2 text-[#1a2420]">{c.title}</h3>
-              <p className="text-sm text-[#6b6358] leading-relaxed">{c.desc}</p>
-            </div>
-          ))}
         </div>
       </section>
 
       {/* CTA */}
-      <section className="max-w-7xl mx-auto px-6 pb-20">
-        <div className="relative overflow-hidden text-center bg-gradient-to-r from-emerald-50 to-[#f4f1e8] rounded-3xl px-6 py-16 border border-emerald-200">
-          <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-200/40 rounded-full blur-3xl" />
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-[#1a2420]">Own a property in Kenya?</h2>
-            <p className="text-lg md:text-xl text-[#6b6358] mb-8 max-w-md mx-auto">
-              List your property and reach thousands of serious buyers and tenants every day.
-            </p>
-            <Link
-              href="/add"
-              className="inline-block bg-[#1a2420] text-white font-semibold px-10 md:px-14 py-4 rounded-2xl text-lg hover:bg-[#2a352f] transition-colors"
-            >
-              List Your Property for Free
-            </Link>
+      <section className="max-w-7xl mx-auto px-6 pt-20">
+        <div className="relative overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-[#f4f1e8] px-8 py-14 md:px-14 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div>
+            <h2 className="text-3xl md:text-4xl font-bold mb-3">Own a property in Kenya?</h2>
+            <p className="text-lg text-[#5c554a] max-w-lg">List it free in a few minutes. Add photos, a map pin and your WhatsApp number — we&apos;ll review it and put it in front of serious buyers and tenants.</p>
           </div>
+          <Link href="/add" className="shrink-0 inline-flex items-center gap-2 bg-[#1a2420] hover:bg-[#2a352f] text-white font-semibold px-8 py-4 rounded-2xl text-lg transition-colors">
+            List your property <ArrowRight size={20} />
+          </Link>
         </div>
       </section>
 
-      <footer className="bg-[#f7f5ef] py-12 border-t border-[#e6e2d8]">
-        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-[#9c948a]">
-          © 2026 Keja Yangu Ltd. All rights reserved.
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
 
-function SectionHeader({ eyebrow, title, href }: { eyebrow: string; title: string; href: string }) {
+const AREA_TINTS = [
+  "bg-gradient-to-br from-emerald-100 to-white",
+  "bg-gradient-to-br from-amber-100 to-white",
+  "bg-gradient-to-br from-sky-100 to-white",
+  "bg-gradient-to-br from-rose-100 to-white",
+];
+
+function SectionHeader({ eyebrow, title, href }: { eyebrow: string; title: string; href?: string }) {
   return (
-    <div className="flex justify-between items-end mb-10">
+    <div className="flex justify-between items-end mb-8 gap-4">
       <div>
-        <p className="text-emerald-600 text-sm font-semibold uppercase tracking-wider mb-2">{eyebrow}</p>
-        <h2 className="text-3xl md:text-4xl font-bold text-[#1a2420]">{title}</h2>
+        <p className="text-emerald-700 text-sm font-semibold uppercase tracking-wider mb-2">{eyebrow}</p>
+        <h2 className="text-2xl md:text-4xl font-bold text-[#1a2420]">{title}</h2>
       </div>
-      <Link href={href} className="text-emerald-600 hover:text-emerald-700 hover:underline text-base font-medium shrink-0">
-        See all →
-      </Link>
+      {href && (
+        <Link href={href} className="text-emerald-700 hover:underline font-semibold shrink-0 inline-flex items-center gap-1">
+          See all <ArrowRight size={16} />
+        </Link>
+      )}
     </div>
-  );
-}
-
-function PropertyCard({ property: p, highlightBadge = false }: { property: Property; highlightBadge?: boolean }) {
-  const isRent = p.listing_type === "Rent";
-  const formattedPrice = typeof p.price === "number" ? p.price.toLocaleString() : "Price on request";
-  return (
-    <Link
-      href={`/properties/${p.id}`}
-      className="group rounded-3xl overflow-hidden bg-white border border-[#e6e2d8] hover:border-emerald-300 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col"
-    >
-      <div className="h-56 bg-[#f7f5ef] relative flex items-center justify-center overflow-hidden">
-        {p.images?.[0] ? (
-          <img
-            src={p.images[0]}
-            alt={p.title}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
-        ) : (
-          <div className="text-center">
-            <div className="text-7xl opacity-20">🏠</div>
-            <span className="text-sm text-[#b3aca0]">No image yet</span>
-          </div>
-        )}
-        <div className="absolute top-4 left-4 flex gap-2">
-          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${isRent || highlightBadge ? "bg-emerald-600 text-white" : "bg-[#1a2420] text-white"}`}>
-            {p.property_type}
-          </span>
-          {p.is_new && (
-            <span className="px-3 py-1 text-xs font-semibold rounded-full bg-white text-[#1a2420] border border-[#e6e2d8]">
-              New
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="p-6 flex flex-col flex-1">
-        <h3 className="font-semibold text-lg line-clamp-2 mb-2 text-[#1a2420] group-hover:text-emerald-600 transition-colors">
-          {p.title}
-        </h3>
-        <p className="text-emerald-600 text-2xl font-bold">
-          KSh {formattedPrice}
-          {isRent && <span className="text-base font-normal text-[#6b6358]"> /mo</span>}
-        </p>
-        <p className="text-[#6b6358] mt-2 flex items-center gap-1.5 text-sm">
-          <MapPin size={16} className="shrink-0" />{p.location}
-        </p>
-        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-[#e6e2d8] text-sm text-[#6b6358]">
-          {p.bedrooms !== null && (
-            <span className="flex items-center gap-1.5">
-              <BedDouble size={16} className="text-emerald-600/70" />{p.bedrooms === 0 ? "Studio" : `${p.bedrooms} beds`}
-            </span>
-          )}
-          {p.bathrooms !== null && (
-            <span className="flex items-center gap-1.5">
-              <Bath size={16} className="text-emerald-600/70" />{p.bathrooms} baths
-            </span>
-          )}
-          {p.size_sqm !== null && (
-            <span className="flex items-center gap-1.5">
-              <Maximize size={16} className="text-emerald-600/70" />{p.size_sqm} m²
-            </span>
-          )}
-        </div>
-      </div>
-    </Link>
   );
 }

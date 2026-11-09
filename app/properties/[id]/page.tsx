@@ -1,8 +1,11 @@
 // app/properties/[id]/page.tsx
 
+import { cache } from "react";
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import SiteFooter from "@/components/SiteFooter";
 import ImageGallery from "@/components/ImageGallery";
 import CallAgentButton from "@/components/CallAgentButton";
 import { toE164, toWhatsAppNumber, formatPhone } from "@/lib/phone";
@@ -12,12 +15,17 @@ import SaveHomeButton from "@/components/SaveHomeButton";
 import ShareButton from "@/components/ShareButton";
 import PaymentEstimate from "@/components/PaymentEstimate";
 import ReportListingButton from "@/components/ReportListingButton";
+import { RecordView } from "@/components/RecentlyViewed";
 import PropertyCard, { toCardData, type PropertyCardData } from "@/components/PropertyCard";
 import { ApproxLocationMap } from "@/components/map";
+import { Breadcrumbs } from "@/components/ui";
+import { areaOf } from "@/lib/areas";
+import { SITE } from "@/lib/site";
+import { readDetails, hasAnyDetails, POWER_METER_LABELS, TITLE_TYPE_LABELS } from "@/lib/listingDetails";
 import {
   MapPin, BedDouble, Bath, Maximize, CheckCircle2,
-  MessageCircle, Phone, ArrowLeft,
-  Calendar, Shield, BadgeCheck, PhoneOff,
+  MessageCircle, Phone,
+  Calendar, Shield, BadgeCheck, PhoneOff, ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -47,23 +55,45 @@ type Property = {
   longitude?: number | null;
 };
 
-export default async function PropertyDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Props = { params: Promise<{ id: string }> };
+
+// Shared by generateMetadata and the page, so the listing is fetched once per request.
+const getProperty = cache(async (id: string) => {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
+  return (data as Property | null) ?? null;
+});
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  const p = await getProperty(id);
+  if (!p) return { title: "Listing not found", robots: { index: false } };
+  const isRent = p.listing_type === "Rent";
+  const price = typeof p.price === "number" ? `KSh ${p.price.toLocaleString("en-KE")}${isRent ? "/month" : ""}` : "";
+  const facts = [
+    p.bedrooms !== null ? (p.bedrooms === 0 ? "Studio" : `${p.bedrooms} bed`) : null,
+    p.bathrooms !== null ? `${p.bathrooms} bath` : null,
+    p.size_sqm ? `${p.size_sqm} m²` : null,
+  ].filter(Boolean).join(", ");
+  const description = [`${p.property_type} for ${isRent ? "rent" : "sale"} in ${p.location}`, price, facts]
+    .filter(Boolean).join(" · ") + (p.description ? ` — ${p.description.slice(0, 120)}` : "");
+  const image = parseImages(p.images)[0];
+  return {
+    title: `${p.title} — ${price}`,
+    description,
+    alternates: { canonical: `/properties/${p.id}` },
+    openGraph: { title: p.title, description, type: "website", images: image ? [{ url: image }] : undefined },
+  };
+}
+
+export default async function PropertyDetailPage({ params }: Props) {
+  const { id } = await params;
+  const property = await getProperty(id);
+  if (!property) notFound();
 
   const supabase = await createClient();
-  const { data: property, error } = await supabase
-    .from("properties")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error || !property) notFound();
-
-  const p = property as Property;
+  const p = property;
   const isRent = p.listing_type === "Rent" || p.property_type === "For Rent";
   const formattedPrice = typeof p.price === "number" ? p.price.toLocaleString() : "Price on request";
   const listedDate = new Date(p.created_at).toLocaleDateString("en-KE", {
@@ -72,17 +102,12 @@ export default async function PropertyDetailPage({
 
   // Owner contact: each listing carries its own owner's name + phone.
   // Older listings without them fall back to the lister's profile.
-  let ownerName = p.contact_name?.trim() || null;
-  let phone = toE164(p.contact_phone);
-  if ((!ownerName || !phone) && p.user_id) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("display_name, phone")
-      .eq("user_id", p.user_id)
-      .maybeSingle();
-    ownerName ??= profile?.display_name?.trim() || null;
-    phone ??= toE164(profile?.phone);
-  }
+  const { data: profile } = p.user_id
+    ? await supabase.from("profiles").select("display_name, phone, is_agent, agency_name").eq("user_id", p.user_id).maybeSingle()
+    : { data: null };
+  const ownerName = p.contact_name?.trim() || profile?.display_name?.trim() || null;
+  const phone = toE164(p.contact_phone) ?? toE164(profile?.phone);
+  const isAgent = !!profile?.is_agent;
   // Placeholder owners fill gaps in development only (see lib/dummyContacts.ts).
   const dummy = placeholderContactsEnabled() ? getDummyContact(p.id) : null;
   const owner: string | null = ownerName ?? dummy?.name ?? null;
@@ -91,12 +116,13 @@ export default async function PropertyDetailPage({
     ? owner.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")
     : "KY";
   const whatsappText = encodeURIComponent(
-    `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on Keja Yangu (ref ${p.id.slice(0, 8)})`
+    `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on Apart Ments (ref ${p.id.slice(0, 8)})`
   );
   const whatsappHref = ownerPhone ? `https://wa.me/${toWhatsAppNumber(ownerPhone)}?text=${whatsappText}` : null;
   const verified = isVerifiedListing(p.verification_status);
   const coords = getCoords(p);
 
+  const details = readDetails(p as unknown as Record<string, unknown>);
   const images = parseImages(p.images);
   const days = daysOnSite(p.created_at);
   const pricePerSqm =
@@ -128,17 +154,50 @@ export default async function PropertyDetailPage({
     .slice(0, 3)
     .map(({ c }) => c);
 
+  const areaName = areaOf(p.location);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "RealEstateListing",
+    name: p.title,
+    url: `${SITE.url}/properties/${p.id}`,
+    datePosted: p.created_at,
+    image: images.slice(0, 5),
+    description: p.description ?? undefined,
+    offers: typeof p.price === "number" ? {
+      "@type": "Offer",
+      price: p.price,
+      priceCurrency: "KES",
+      businessFunction: isRent ? "http://purl.org/goodrelations/v1#LeaseOut" : "http://purl.org/goodrelations/v1#Sell",
+      availability: "https://schema.org/InStock",
+    } : undefined,
+    about: {
+      "@type": p.property_type === "Land" ? "Landform" : p.property_type === "Apartment" ? "Apartment" : "House",
+      numberOfBedrooms: p.bedrooms ?? undefined,
+      numberOfBathroomsTotal: p.bathrooms ?? undefined,
+      floorSize: p.size_sqm ? { "@type": "QuantitativeValue", value: p.size_sqm, unitCode: "MTK" } : undefined,
+      address: { "@type": "PostalAddress", addressLocality: p.location, addressCountry: "KE" },
+    },
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#1a2420]">
       <Navbar />
 
+      <RecordView id={p.id} />
+      <script
+        type="application/ld+json"
+        // JSON-LD for search engines; values are JSON-encoded, "<" escaped to keep the script tag safe.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, LT_ESCAPE) }}
+      />
+
       <div className="max-w-7xl mx-auto px-6 pt-6">
-        <Link
-          href="/properties"
-          className="inline-flex items-center gap-2 text-[#6b6358] hover:text-emerald-600 transition-colors text-sm"
-        >
-          <ArrowLeft size={16} /> Back to listings
-        </Link>
+        <Breadcrumbs
+          items={[
+            { label: isRent ? "For rent" : "For sale", href: `/properties?type=${isRent ? "rent" : "sale"}` },
+            ...(areaName ? [{ label: areaName, href: `/properties?type=${isRent ? "rent" : "sale"}&location=${encodeURIComponent(areaName)}` }] : []),
+            { label: p.title },
+          ]}
+        />
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
@@ -169,7 +228,7 @@ export default async function PropertyDetailPage({
                   </span>
                   {verified && (
                     <span
-                      title="The Keja Yangu team has reviewed this listing"
+                      title="The Apart Ments team has reviewed this listing"
                       className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300"
                     >
                       <BadgeCheck size={14} /> Verified listing
@@ -207,14 +266,16 @@ export default async function PropertyDetailPage({
                 </p>
                 {days !== null && (
                   <p className="mt-1">
-                    {days === 0 ? "New today" : `${days} day${days === 1 ? "" : "s"} on Keja Yangu`}
+                    {days === 0 ? "New today" : `${days} day${days === 1 ? "" : "s"} on Apart Ments`}
                   </p>
                 )}
               </div>
             </div>
 
             {/* Monthly payment (sale) / move-in cost (rent) */}
-            {typeof p.price === "number" && <PaymentEstimate price={p.price} isRent={isRent} />}
+            {typeof p.price === "number" && (
+              <PaymentEstimate price={p.price} isRent={isRent} depositMonths={details.deposit_months} serviceCharge={details.service_charge} />
+            )}
 
             {/* Specs */}
             <div>
@@ -248,6 +309,28 @@ export default async function PropertyDetailPage({
                 />
               </div>
             </div>
+
+            {/* Kenyan essentials: what renters and buyers ask before anything else */}
+            {hasAnyDetails(details) && (
+              <div>
+                <h2 className="text-xl font-bold mb-4">Good to know</h2>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 rounded-2xl border border-[#e6e2d8] px-5 py-2">
+                  {[
+                    isRent && details.deposit_months !== null ? ["Deposit", details.deposit_months === 0 ? "No deposit" : `${details.deposit_months} month${details.deposit_months === 1 ? "" : "s"}' rent`] : null,
+                    details.service_charge !== null ? ["Service charge", details.service_charge === 0 ? "None" : `KSh ${details.service_charge.toLocaleString("en-KE")} / month`] : null,
+                    details.water_sources.length ? ["Water", details.water_sources.join(", ")] : null,
+                    details.power_meter ? ["Electricity", POWER_METER_LABELS[details.power_meter] ?? details.power_meter] : null,
+                    !isRent && details.title_type ? ["Title", TITLE_TYPE_LABELS[details.title_type] ?? details.title_type] : null,
+                    details.landmark ? ["Landmark", details.landmark] : null,
+                  ].filter((r): r is string[] => r !== null).map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-4 py-3 border-b border-[#e6e2d8] last:border-0 sm:[&:nth-last-child(2)]:border-0 text-sm">
+                      <dt className="text-[#6b6358]">{k}</dt>
+                      <dd className="font-medium text-right">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
 
             {/* Description */}
             {p.description && (
@@ -319,7 +402,11 @@ export default async function PropertyDetailPage({
                       {ownerInitials}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-base truncate">{owner ?? "Property owner"}</p>
+                      <p className="font-semibold text-base truncate flex items-center gap-1.5">
+                        {owner ?? "Property owner"}
+                        {isAgent && <span className="text-[10px] font-semibold uppercase bg-[#1a2420] text-white px-1.5 py-0.5 rounded">Agent</span>}
+                      </p>
+                      {isAgent && profile?.agency_name && <p className="text-xs text-[#6b6358] truncate">{profile.agency_name}</p>}
                       {ownerPhone ? (
                         <a
                           href={`tel:${ownerPhone}`}
@@ -335,6 +422,11 @@ export default async function PropertyDetailPage({
                       )}
                     </div>
                   </div>
+                  {p.user_id && (
+                    <Link href={`/agents/${encodeURIComponent(p.user_id)}`} className="mt-3 pt-3 border-t border-[#e6e2d8] flex items-center justify-between text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+                      See all listings by {owner ? owner.split(/\s+/)[0] : "this lister"} <ChevronRight size={16} />
+                    </Link>
+                  )}
                 </div>
 
                 {whatsappHref && ownerPhone ? (
@@ -422,12 +514,24 @@ export default async function PropertyDetailPage({
           </section>
         )}
       </div>
+      {/* Mobile: contact bar pinned above the bottom navigation (Zillow-style) */}
+      {whatsappHref && ownerPhone && (
+        <>
+          <div className="h-20 lg:hidden" aria-hidden="true" />
+          <div className="lg:hidden fixed inset-x-0 bottom-[58px] z-40 bg-white/95 backdrop-blur border-t border-[#e6e2d8] px-4 py-3 flex gap-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+            <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#25D366] text-white font-semibold py-3 rounded-xl">
+              <MessageCircle size={18} /> WhatsApp
+            </a>
+            <a href={`tel:${ownerPhone}`}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-emerald-600 text-white font-semibold py-3 rounded-xl">
+              <Phone size={18} /> Call
+            </a>
+          </div>
+        </>
+      )}
 
-      <footer className="bg-[#f7f5ef] py-10 border-t border-[#e6e2d8] mt-16">
-        <div className="max-w-7xl mx-auto px-6 text-center text-sm text-[#9c948a]">
-          © 2026 Keja Yangu Ltd. All rights reserved.
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
@@ -449,3 +553,5 @@ function SpecCard({
     </div>
   );
 }
+/** JSON escape for "<" so listing text can never close the JSON-LD script tag. */
+const LT_ESCAPE = "\\" + "u003c";

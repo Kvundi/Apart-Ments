@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, BedDouble, Bath, Maximize, BadgeCheck } from "lucide-react";
+import { MapPin, BadgeCheck, Home } from "lucide-react";
 import SaveHomeButton from "@/components/SaveHomeButton";
 import { daysOnSite, NEW_LISTING_DAYS, type PropertyCardData } from "@/lib/listing";
 
@@ -27,7 +27,7 @@ export default function PropertyCard({ p }: { p: PropertyCardData }) {
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="text-6xl opacity-20">🏠</div>
+            <Home size={44} className="text-[#c8c0b4]" strokeWidth={1.5} aria-label="No photo" />
           )}
           <div className="absolute top-3 left-3 flex gap-1.5">
             <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${isRent ? "bg-emerald-600 text-white" : "bg-[#1a2420] text-white"}`}>
@@ -49,16 +49,24 @@ export default function PropertyCard({ p }: { p: PropertyCardData }) {
           )}
         </div>
         <div className="p-5 flex flex-col flex-1">
-          <p className="text-emerald-600 text-xl font-bold">
-            KSh {p.price?.toLocaleString()}
+          <p className="text-[#1a2420] text-2xl font-bold tracking-tight">
+            KSh {p.price?.toLocaleString("en-KE")}
             {isRent && <span className="text-sm font-normal text-[#6b6358]"> /mo</span>}
           </p>
-          <div className="flex items-center gap-3 mt-1 text-sm text-[#1a2420]">
-            {p.bedrooms  !== null && <span className="flex items-center gap-1"><BedDouble size={14} className="text-emerald-600/70" />{p.bedrooms === 0 ? "Studio" : `${p.bedrooms} bd`}</span>}
-            {p.bathrooms !== null && <span className="flex items-center gap-1"><Bath size={14} className="text-emerald-600/70" />{p.bathrooms} ba</span>}
-            {p.size_sqm  !== null && <span className="flex items-center gap-1"><Maximize size={14} className="text-emerald-600/70" />{p.size_sqm} m²</span>}
-            <span className="text-[#6b6358]">· {p.property_type}</span>
-          </div>
+          {/* Zillow-style facts line: "3 bd | 2 ba | 120 m² — Apartment". Never wraps mid-fact. */}
+          <p className="mt-1 text-sm text-[#1a2420] flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            {[
+              p.bedrooms !== null ? (p.bedrooms === 0 ? "Studio" : `${p.bedrooms} bd`) : null,
+              p.bathrooms !== null ? `${p.bathrooms} ba` : null,
+              p.size_sqm !== null ? `${p.size_sqm.toLocaleString("en-KE")} m²` : null,
+            ].filter(Boolean).map((f, i) => (
+              <span key={i} className="whitespace-nowrap">
+                {i > 0 && <span className="text-[#c8c0b4] mr-2">|</span>}
+                <strong className="font-semibold">{f}</strong>
+              </span>
+            ))}
+            <span className="whitespace-nowrap text-[#6b6358]">— {p.property_type}</span>
+          </p>
           <h3 className="font-semibold text-sm line-clamp-1 mt-2 text-[#1a2420] group-hover:text-emerald-600 transition-colors">
             {p.title}
           </h3>
@@ -69,7 +77,7 @@ export default function PropertyCard({ p }: { p: PropertyCardData }) {
           {(pricePerSqm || days !== null) && (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#e6e2d8] text-xs text-[#6b6358]">
               <span>{pricePerSqm ? `KSh ${pricePerSqm.toLocaleString()}/m²` : ""}</span>
-              {days !== null && <span>{days === 0 ? "Listed today" : `${days} day${days === 1 ? "" : "s"} on Keja Yangu`}</span>}
+              {days !== null && <span>{days === 0 ? "Listed today" : `${days} day${days === 1 ? "" : "s"} on Apart Ments`}</span>}
             </div>
           )}
         </div>
