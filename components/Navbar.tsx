@@ -59,6 +59,9 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [openMobileAccordion, setOpenMobileAccordion] = useState<string | null>(null);
+  // The private /company-agent workspace is deliberately not linked here: the
+  // allowed founder ID is server-only, so the link would show for every user.
+  const navItems = NAV_ITEMS;
 
   // Close menus on navigation and on Escape.
   const [lastPath, setLastPath] = useState(pathname);
@@ -88,7 +91,7 @@ export default function Navbar() {
 
           {/* Desktop links */}
           <div className="hidden lg:flex items-stretch h-16">
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <div key={item.label} className="relative flex items-stretch">
                 {item.dropdown ? (
                   <>
@@ -193,7 +196,7 @@ export default function Navbar() {
             </Link>
           )}
 
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <div key={item.label} className="border-b border-[#e6e2d8]">
               {item.dropdown ? (
                 <>

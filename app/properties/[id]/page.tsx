@@ -8,6 +8,7 @@ import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
 import ImageGallery from "@/components/ImageGallery";
 import CallAgentButton from "@/components/CallAgentButton";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { toE164, toWhatsAppNumber, formatPhone } from "@/lib/phone";
 import { getDummyContact, placeholderContactsEnabled } from "@/lib/dummyContacts";
 import { parseImages, daysOnSite, isVerifiedListing, getCoords } from "@/lib/listing";
@@ -431,16 +432,8 @@ export default async function PropertyDetailPage({ params }: Props) {
 
                 {whatsappHref && ownerPhone ? (
                   <>
-                    <a
-                      href={whatsappHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#1ebe5c] text-white font-semibold py-4 rounded-2xl transition-colors mb-3"
-                    >
-                      <MessageCircle size={20} />
-                      Chat on WhatsApp
-                    </a>
-                    <CallAgentButton phone={ownerPhone} name={owner ?? "owner"} />
+                    <WhatsAppButton href={whatsappHref} propertyId={p.id} />
+                    <CallAgentButton phone={ownerPhone} name={owner ?? "owner"} propertyId={p.id} />
                   </>
                 ) : (
                   <p className="text-sm text-[#6b6358] bg-[#f7f5ef] rounded-2xl p-4">

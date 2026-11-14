@@ -2,23 +2,27 @@
 
 import { useState } from "react";
 import { Phone, Copy, Check } from "lucide-react";
+import { logContactTap } from "@/lib/contactEvents";
 
 type Props = {
   /** Phone number in E.164 format, e.g. "+254712345678". */
   phone: string;
   /** Lister's name — the button reads "Call <first name>". */
   name: string;
+  /** Listing being viewed — taps are logged to `contact_events` against it. */
+  propertyId: string;
 };
 
 /**
  * Call button: a tel: link (opens the dialer on phones) plus a copy button
  * for desktop users, where tel: links often do nothing.
  */
-export default function CallAgentButton({ phone, name }: Props) {
+export default function CallAgentButton({ phone, name, propertyId }: Props) {
   const [copied, setCopied] = useState(false);
   const firstName = name.split(/\s+/)[0];
 
   const handleCopy = async () => {
+    logContactTap(propertyId, "copy_number");
     try {
       await navigator.clipboard.writeText(phone);
       setCopied(true);
@@ -32,6 +36,7 @@ export default function CallAgentButton({ phone, name }: Props) {
     <div className="flex gap-2">
       <a
         href={`tel:${phone}`}
+        onClick={() => logContactTap(propertyId, "call")}
         className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 rounded-2xl transition-colors"
       >
         <Phone size={20} />

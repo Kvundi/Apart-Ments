@@ -34,3 +34,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Company Strategy Partner
+
+The private `/company-agent` workspace provides strategy planning and text drafts for the Apart Ments founder. It does not execute actions or save conversations. Responses are sent to OpenAI; do not enter customer personal data, credentials, or confidential information.
+
+To enable responses, set `COMPANY_AGENT_USER_ID` to the founder's Clerk user ID, `CLERK_SECRET_KEY` for server-side Clerk authentication, and `OPENAI_API_KEY` as server-only environment variables. You can optionally set `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Never expose secret keys with a `NEXT_PUBLIC_` prefix.
