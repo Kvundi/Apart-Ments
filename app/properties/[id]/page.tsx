@@ -45,6 +45,7 @@ type Property = {
   bathrooms: number | null;
   size_sqm: number | null;
   images: string[] | null;
+  videos?: string[] | null;
   amenities: string[] | null;
   user_id: string;
   created_at: string;
@@ -136,6 +137,9 @@ async function PropertyDetail({ property }: { property: Property }) {
 
   const details = readDetails(p as unknown as Record<string, unknown>);
   const images = parseImages(p.images);
+  // Only play files from our own Supabase video storage, never arbitrary URLs.
+  const videoPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/property-videos/`;
+  const videos = (p.videos ?? []).filter((v): v is string => typeof v === "string" && v.startsWith(videoPrefix));
   const days = daysOnSite(p.created_at);
   const pricePerSqm =
     !isRent && p.size_sqm && p.size_sqm > 0 && typeof p.price === "number"
@@ -351,6 +355,29 @@ async function PropertyDetail({ property }: { property: Property }) {
                 <p className="text-[#5c554a] leading-relaxed whitespace-pre-line">
                   {p.description}
                 </p>
+              </div>
+            )}
+
+            {/* Video tours */}
+            {videos.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold mb-4">Video tour{videos.length === 1 ? "" : "s"}</h2>
+                <div className={`grid gap-4 ${videos.length > 1 ? "sm:grid-cols-2" : ""}`}>
+                  {videos.map((src, i) => (
+                    <video
+                      key={src}
+                      src={src}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      aria-label={`${p.title} video tour ${i + 1}`}
+                      className="w-full max-h-[640px] rounded-2xl bg-black object-contain"
+                    >
+                      Your browser can&apos;t play this video.{" "}
+                      <a href={src} className="underline">Download it</a> instead.
+                    </video>
+                  ))}
+                </div>
               </div>
             )}
 
