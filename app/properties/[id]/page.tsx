@@ -1,6 +1,7 @@
 // app/properties/[id]/page.tsx
 
-import { cache } from "react";
+import { cache, Suspense } from "react";
+import PropertySkeleton from "./PropertySkeleton";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
@@ -90,9 +91,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PropertyDetailPage({ params }: Props) {
   const { id } = await params;
+  // Look the listing up before anything streams. No loading.tsx may wrap this route:
+  // once a fallback is sent the status is locked at 200 and notFound() can't return a 404.
   const property = await getProperty(id);
   if (!property) notFound();
 
+  return (
+    <Suspense fallback={<PropertySkeleton />}>
+      <PropertyDetail property={property} />
+    </Suspense>
+  );
+}
+
+async function PropertyDetail({ property }: { property: Property }) {
   const supabase = await createClient();
   const p = property;
   const isRent = p.listing_type === "Rent" || p.property_type === "For Rent";

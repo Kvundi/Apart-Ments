@@ -1,4 +1,4 @@
-export default function LoadingProperty() {
+export default function PropertySkeleton() {
   return (
     <div className="min-h-screen bg-white">
       <div className="h-16 border-b border-[#e6e2d8]" />
