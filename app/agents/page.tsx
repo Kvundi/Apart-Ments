@@ -9,7 +9,7 @@ import { initials } from "@/lib/people";
 
 export const metadata: Metadata = {
   title: "Find a real estate agent in Kenya",
-  description: "Browse property agents on Apart Ments, see their current listings and contact them directly.",
+  description: "Browse property agents on 28Homes, see their current listings and contact them directly.",
   alternates: { canonical: "/agents" },
 };
 
@@ -58,7 +58,7 @@ export default async function AgentsPage({
         crumbs={[{ label: "Find an agent" }]}
         eyebrow="Agents"
         title="Find a property agent"
-        description="Browse agents listing on Apart Ments, see what they're selling and letting, and contact them directly."
+        description="Browse agents listing on 28Homes, see what they're selling and letting, and contact them directly."
       >
         <form method="GET" action="/agents" className="flex max-w-xl bg-white border border-[#e6e2d8] rounded-2xl p-1.5 shadow-sm">
           <div className="flex items-center gap-2 flex-1 px-3">

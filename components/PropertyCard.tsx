@@ -77,7 +77,7 @@ export default function PropertyCard({ p }: { p: PropertyCardData }) {
           {(pricePerSqm || days !== null) && (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#e6e2d8] text-xs text-[#6b6358]">
               <span>{pricePerSqm ? `KSh ${pricePerSqm.toLocaleString()}/m²` : ""}</span>
-              {days !== null && <span>{days === 0 ? "Listed today" : `${days} day${days === 1 ? "" : "s"} on Apart Ments`}</span>}
+              {days !== null && <span>{days === 0 ? "Listed today" : `${days} day${days === 1 ? "" : "s"} on 28Homes`}</span>}
             </div>
           )}
         </div>

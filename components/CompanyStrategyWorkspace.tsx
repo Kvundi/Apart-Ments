@@ -83,7 +83,7 @@ export default function CompanyStrategyWorkspace() {
             </p>
             <h1 className="text-3xl md:text-5xl font-bold tracking-tight">Company Strategy Partner</h1>
             <p className="text-[#6b6358] mt-3 max-w-2xl leading-relaxed">
-              Think clearly about what to build next, test ideas quickly, and turn priorities into measurable plans for Apart Ments.
+              Think clearly about what to build next, test ideas quickly, and turn priorities into measurable plans for 28Homes.
             </p>
           </div>
           <span className="inline-flex items-center gap-2 self-start md:self-auto rounded-full bg-white border border-[#e6e2d8] px-4 py-2 text-sm font-medium">

@@ -45,7 +45,7 @@ export default function BuyGuidePage() {
 
       <h2 id="search">2. Search and view</h2>
       <ul>
-        <li>Save searches on Apart Ments to get emailed when matching homes are listed.</li>
+        <li>Save searches on 28Homes to get emailed when matching homes are listed.</li>
         <li>Visit in person — at different times of day if you can — and check water supply, road access, security and noise.</li>
         <li>For apartments, ask about the service charge, the management company and whether the building has sectional titles.</li>
         <li>Talk to neighbours. They&apos;ll tell you about flooding, water rationing and disputes that no listing mentions.</li>

@@ -30,7 +30,7 @@ export default function SellGuidePage() {
       aside={
         <div className="rounded-2xl bg-[#10201a] text-white p-6">
           <p className="font-semibold mb-2">Ready to list?</p>
-          <p className="text-sm text-[#b8c6be] mb-4">Posting on Apart Ments is free. Add good photos and a map pin to stand out.</p>
+          <p className="text-sm text-[#b8c6be] mb-4">Posting on 28Homes is free. Add good photos and a map pin to stand out.</p>
           <Link href="/add" className="inline-block bg-emerald-500 hover:bg-emerald-400 text-[#10201a] font-semibold px-5 py-2.5 rounded-xl">Post a listing</Link>
         </div>
       }

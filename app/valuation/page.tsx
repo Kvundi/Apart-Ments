@@ -13,7 +13,7 @@ import { estimate, type ValuationInput } from "@/lib/valuation";
 export const metadata: Metadata = {
   title: "Home value and rent estimate — Kenya",
   description:
-    "Estimate what a home in your area could sell or rent for, based on comparable live listings on Apart Ments. Free, instant and transparent.",
+    "Estimate what a home in your area could sell or rent for, based on comparable live listings on 28Homes. Free, instant and transparent.",
   alternates: { canonical: "/valuation" },
 };
 
@@ -52,7 +52,7 @@ export default async function ValuationPage({
         crumbs={[{ label: "Home value estimate" }]}
         eyebrow="Free estimate"
         title={isRent ? "What could your home rent for?" : "What is your home worth?"}
-        description="An instant price or rent range based on comparable homes listed on Apart Ments — with every comparable shown, so you can judge it yourself."
+        description="An instant price or rent range based on comparable homes listed on 28Homes — with every comparable shown, so you can judge it yourself."
       />
 
       <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -108,7 +108,7 @@ export default async function ValuationPage({
             <div className="rounded-3xl bg-[#f7f5ef] border border-[#e6e2d8] p-8">
               <Search size={32} className="text-emerald-700 mb-4" />
               <h2 className="text-xl font-bold mb-2">Enter an area to get started</h2>
-              <p className="text-[#6b6358]">We&apos;ll find comparable homes listed on Apart Ments and show you the typical range, plus each comparable home so you can see how we got there.</p>
+              <p className="text-[#6b6358]">We&apos;ll find comparable homes listed on 28Homes and show you the typical range, plus each comparable home so you can see how we got there.</p>
             </div>
           ) : result ? (
             <>
@@ -156,7 +156,7 @@ export default async function ValuationPage({
               <p>
                 Kenya has no public database of what homes actually sell or rent for, so no website can give a true &ldquo;market value&rdquo;
                 from records the way some overseas sites do. This tool uses the next-best evidence: <strong>asking prices of comparable homes
-                currently listed on Apart Ments</strong>. If you give a size, we scale by the typical price per m².
+                currently listed on 28Homes</strong>. If you give a size, we scale by the typical price per m².
               </p>
               <ul>
                 <li>Asking prices are often higher than the final agreed price — expect some negotiation.</li>

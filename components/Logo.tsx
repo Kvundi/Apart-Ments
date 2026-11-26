@@ -15,10 +15,10 @@ export function LogoMark({ size = 36, className = "" }: { size?: number; classNa
 
 export default function Logo({ tone = "dark" }: { tone?: "dark" | "light" }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0" aria-label="Apart Ments home">
+    <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0" aria-label="28Homes home">
       <LogoMark className="transition-transform group-hover:scale-105" />
       <span className={`text-xl font-bold tracking-tight ${tone === "light" ? "text-white" : "text-[#1a2420]"}`}>
-        Apart<span className="text-emerald-600">Ments</span>
+        28<span className="text-emerald-600">Homes</span>
       </span>
     </Link>
   );

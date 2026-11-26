@@ -9,7 +9,7 @@ export default function AuthShell({ title, children }: { title: string; children
       <main className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <section className="hidden lg:block">
           <h1 className="text-4xl font-bold tracking-tight mb-4">{title}</h1>
-          <p className="text-lg text-[#5c554a] mb-8 max-w-md">One free account for everything you do on Apart Ments.</p>
+          <p className="text-lg text-[#5c554a] mb-8 max-w-md">One free account for everything you do on 28Homes.</p>
           <ul className="space-y-5">
             {[
               { icon: Heart, t: "Save homes on every device", d: "Your hearts follow you from phone to laptop." },

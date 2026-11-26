@@ -136,7 +136,7 @@ export default function LoansPage() {
                 <p className="text-sm text-[#6b6358] leading-relaxed">{g.body}</p>
               </div>
             ))}
-            <p className="text-xs text-[#9c948a]">Apart Ments is not a lender and isn&apos;t paid by any of the lenders named here.</p>
+            <p className="text-xs text-[#9c948a]">28Homes is not a lender and isn&apos;t paid by any of the lenders named here.</p>
             <div className="rounded-2xl bg-[#10201a] text-white p-6 mt-6">
               <FileText size={22} className="text-emerald-300 mb-3" />
               <h3 className="font-semibold mb-1">Ready to look?</h3>

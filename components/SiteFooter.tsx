@@ -37,7 +37,7 @@ export default function SiteFooter() {
           ))}
         </div>
         <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-[#7f9187]">
-          <p>© {new Date().getFullYear()} Apart Ments. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} 28Homes. All rights reserved.</p>
           <p>Listings are provided by owners and agents. Always verify ownership before paying.</p>
         </div>
       </div>

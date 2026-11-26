@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Apart Ments — homes for sale and rent in Kenya";
+export const alt = "28Homes — homes for sale and rent in Kenya";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -19,7 +19,7 @@ export default function OpengraphImage() {
             ⌂
           </div>
           <div style={{ fontSize: 44, fontWeight: 700, display: "flex" }}>
-            Apart<span style={{ color: "#6ee7b7" }}>Ments</span>
+            28<span style={{ color: "#6ee7b7" }}>Homes</span>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>

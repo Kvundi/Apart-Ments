@@ -30,10 +30,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const { profile, listings } = await load(id);
   const name = profile?.display_name || profile?.full_name;
-  if (!name) return { title: listings.length ? "Listings by a Apart Ments member" : "Profile not found", robots: { index: false } };
+  if (!name) return { title: listings.length ? "Listings by a 28Homes member" : "Profile not found", robots: { index: false } };
   return {
     title: `${name}${profile?.agency_name ? ` — ${profile.agency_name}` : ""}`,
-    description: profile?.bio?.slice(0, 160) || `Homes listed by ${name} on Apart Ments.`,
+    description: profile?.bio?.slice(0, 160) || `Homes listed by ${name} on 28Homes.`,
     alternates: { canonical: `/agents/${encodeURIComponent(id)}` },
   };
 }
@@ -43,7 +43,7 @@ export default async function AgentProfilePage({ params }: Props) {
   const { profile, listings } = await load(id);
   if (!profile && listings.length === 0) notFound();
 
-  const name = profile?.display_name || profile?.full_name || "Apart Ments member";
+  const name = profile?.display_name || profile?.full_name || "28Homes member";
   const phone = toE164(profile?.phone);
   const forSale = listings.filter((l) => l.listing_type === "Sale").length;
   const forRent = listings.filter((l) => l.listing_type === "Rent").length;
@@ -76,12 +76,12 @@ export default async function AgentProfilePage({ params }: Props) {
               <div className="flex flex-wrap gap-x-5 gap-y-1 mt-2 text-[#6b6358]">
                 {profile?.agency_name && <span className="flex items-center gap-1.5"><Building2 size={16} />{profile.agency_name}</span>}
                 {profile?.location && <span className="flex items-center gap-1.5"><MapPin size={16} />{profile.location}</span>}
-                {memberSince && <span>On Apart Ments since {memberSince}</span>}
+                {memberSince && <span>On 28Homes since {memberSince}</span>}
               </div>
             </div>
             {phone && (
               <div className="flex gap-2">
-                <a href={`https://wa.me/${toWhatsAppNumber(phone)}?text=${encodeURIComponent(`Hi ${firstName(name)}, I found your profile on Apart Ments.`)}`}
+                <a href={`https://wa.me/${toWhatsAppNumber(phone)}?text=${encodeURIComponent(`Hi ${firstName(name)}, I found your profile on 28Homes.`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5c] text-white font-semibold px-5 py-3 rounded-2xl">
                   <MessageCircle size={18} /> WhatsApp
@@ -108,7 +108,7 @@ export default async function AgentProfilePage({ params }: Props) {
               <p className="text-sm text-[#5c554a] leading-relaxed whitespace-pre-line">{profile.bio}</p>
             </div>
           )}
-          <p className="text-xs text-[#9c948a]">Apart Ments doesn&apos;t verify agent registration yet. Ask any agent for their EARB registration before working with them.</p>
+          <p className="text-xs text-[#9c948a]">28Homes doesn&apos;t verify agent registration yet. Ask any agent for their EARB registration before working with them.</p>
         </aside>
         <section className="lg:col-span-3">
           <h2 className="text-2xl font-bold mb-6">Listings by {firstName(name) || name}</h2>

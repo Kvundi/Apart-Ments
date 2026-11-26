@@ -238,7 +238,7 @@ export default function MyListingsPage() {
 
                   {p.admin_notes && (
                     <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
-                      <p className="font-semibold mb-0.5">Note from the Apart Ments team</p>
+                      <p className="font-semibold mb-0.5">Note from the 28Homes team</p>
                       <p className="whitespace-pre-line">{p.admin_notes}</p>
                     </div>
                   )}

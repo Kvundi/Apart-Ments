@@ -106,7 +106,7 @@ export default async function HomePage() {
 
       {/* Latest listings */}
       <section className="max-w-7xl mx-auto px-6 pt-20">
-        <SectionHeader eyebrow="Just listed" title="Newest homes on Apart Ments" href="/properties" />
+        <SectionHeader eyebrow="Just listed" title="Newest homes on 28Homes" href="/properties" />
         {latest.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {latest.map((p) => <PropertyCard key={p.id} p={p} />)}
@@ -166,7 +166,7 @@ export default async function HomePage() {
       {/* Trust */}
       <section className="max-w-7xl mx-auto px-6 pt-20">
         <div className="rounded-3xl bg-[#10201a] text-white p-8 md:p-12">
-          <p className="text-emerald-300 text-sm font-semibold uppercase tracking-wider mb-3">Why Apart Ments</p>
+          <p className="text-emerald-300 text-sm font-semibold uppercase tracking-wider mb-3">Why 28Homes</p>
           <h2 className="text-3xl md:text-4xl font-bold mb-10 max-w-2xl">Built so you only deal with real homes and real owners</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[

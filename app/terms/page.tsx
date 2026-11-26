@@ -6,7 +6,7 @@ import { PageHero, Prose, ReviewedNote } from "@/components/ui";
 
 export const metadata: Metadata = {
   title: "Terms of use",
-  description: "The rules for using Apart Ments, posting listings and contacting owners and agents.",
+  description: "The rules for using 28Homes, posting listings and contacting owners and agents.",
   alternates: { canonical: "/terms" },
 };
 
@@ -14,12 +14,12 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white text-[#1a2420]">
       <Navbar />
-      <PageHero crumbs={[{ label: "Terms of use" }]} title="Terms of use" description="The ground rules for using Apart Ments — for people searching and for people listing." />
+      <PageHero crumbs={[{ label: "Terms of use" }]} title="Terms of use" description="The ground rules for using 28Homes — for people searching and for people listing." />
       <main className="max-w-3xl mx-auto px-6 py-12">
         <Prose>
-          <h2>1. What Apart Ments is</h2>
+          <h2>1. What 28Homes is</h2>
           <p>
-            Apart Ments is a marketplace where property owners and agents advertise homes and land for sale or rent, and where people searching
+            28Homes is a marketplace where property owners and agents advertise homes and land for sale or rent, and where people searching
             can contact them. We are not a party to any sale, purchase or tenancy, we don&apos;t hold deposits, and we don&apos;t act as anyone&apos;s agent.
           </p>
 
@@ -40,7 +40,7 @@ export default function TermsPage() {
             <li>the listing doesn&apos;t discriminate against anyone on grounds protected by Kenyan law.</li>
           </ul>
           <p>
-            You keep ownership of your content and give us permission to display, resize and promote it on Apart Ments and in our alerts while it is listed.
+            You keep ownership of your content and give us permission to display, resize and promote it on 28Homes and in our alerts while it is listed.
           </p>
 
           <h2>4. Review and removal</h2>

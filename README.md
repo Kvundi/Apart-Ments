@@ -37,6 +37,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Company Strategy Partner
 
-The private `/company-agent` workspace provides strategy planning and text drafts for the Apart Ments founder. It does not execute actions or save conversations. Responses are sent to OpenAI; do not enter customer personal data, credentials, or confidential information.
+The private `/company-agent` workspace provides strategy planning and text drafts for the 28Homes founder. It does not execute actions or save conversations. Responses are sent to OpenAI; do not enter customer personal data, credentials, or confidential information.
 
 To enable responses, set `COMPANY_AGENT_USER_ID` to the founder's Clerk user ID, `CLERK_SECRET_KEY` for server-side Clerk authentication, and `OPENAI_API_KEY` as server-only environment variables. You can optionally set `OPENAI_MODEL` (defaults to `gpt-4o-mini`). Never expose secret keys with a `NEXT_PUBLIC_` prefix.

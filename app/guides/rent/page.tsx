@@ -28,7 +28,7 @@ export default function RentGuidePage() {
       toc={TOC}
       aside={
         <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-6">
-          <p className="font-semibold text-emerald-900 mb-2">On Apart Ments</p>
+          <p className="font-semibold text-emerald-900 mb-2">On 28Homes</p>
           <ul className="text-sm text-emerald-900 space-y-2 list-disc pl-5">
             <li>Every listing is reviewed before it goes live</li>
             <li>You contact the lister directly — we never charge you</li>
@@ -66,7 +66,7 @@ export default function RentGuidePage() {
         <li><strong>Utility deposits:</strong> some landlords ask for water and/or electricity deposits.</li>
         <li><strong>Agent fee:</strong> some agents charge the tenant a commission — commonly 50–100% of one month&apos;s rent. Agree it before the viewing.</li>
       </ul>
-      <p>Every rental on Apart Ments shows an estimated move-in cost so you can budget before you call.</p>
+      <p>Every rental on 28Homes shows an estimated move-in cost so you can budget before you call.</p>
 
       <h2 id="viewing">What to check on a viewing</h2>
       <ul>
@@ -89,7 +89,7 @@ export default function RentGuidePage() {
 
       <h2 id="report">If something goes wrong</h2>
       <ul>
-        <li>Report the listing on Apart Ments so we can remove it and warn others.</li>
+        <li>Report the listing on 28Homes so we can remove it and warn others.</li>
         <li>If you paid by M-Pesa, call Safaricom immediately to ask about reversing the transaction.</li>
         <li>Report fraud to the police and keep the messages, numbers and receipts.</li>
         <li>For a deposit dispute with a genuine landlord, the Small Claims Court is a low-cost option for smaller amounts; get advice from an advocate or legal-aid clinic.</li>

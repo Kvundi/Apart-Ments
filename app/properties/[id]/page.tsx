@@ -129,7 +129,7 @@ async function PropertyDetail({ property }: { property: Property }) {
     ? owner.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")
     : "KY";
   const whatsappText = encodeURIComponent(
-    `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on Apart Ments (ref ${p.id.slice(0, 8)})`
+    `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on 28Homes (ref ${p.id.slice(0, 8)})`
   );
   const whatsappHref = ownerPhone ? `https://wa.me/${toWhatsAppNumber(ownerPhone)}?text=${whatsappText}` : null;
   const verified = isVerifiedListing(p.verification_status);
@@ -244,7 +244,7 @@ async function PropertyDetail({ property }: { property: Property }) {
                   </span>
                   {verified && (
                     <span
-                      title="The Apart Ments team has reviewed this listing"
+                      title="The 28Homes team has reviewed this listing"
                       className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300"
                     >
                       <BadgeCheck size={14} /> Verified listing
@@ -282,7 +282,7 @@ async function PropertyDetail({ property }: { property: Property }) {
                 </p>
                 {days !== null && (
                   <p className="mt-1">
-                    {days === 0 ? "New today" : `${days} day${days === 1 ? "" : "s"} on Apart Ments`}
+                    {days === 0 ? "New today" : `${days} day${days === 1 ? "" : "s"} on 28Homes`}
                   </p>
                 )}
               </div>

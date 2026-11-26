@@ -6,7 +6,7 @@ import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
-  description: "How Apart Ments collects, uses and protects your personal data under Kenya's Data Protection Act, 2019.",
+  description: "How 28Homes collects, uses and protects your personal data under Kenya's Data Protection Act, 2019.",
   alternates: { canonical: "/privacy" },
 };
 
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <Prose>
           <h2>Who we are</h2>
           <p>
-            Apart Ments is an online property marketplace that connects people looking for homes with owners and agents in Kenya. We are the
+            28Homes is an online property marketplace that connects people looking for homes with owners and agents in Kenya. We are the
             data controller for personal data collected through this website.
             {email && <> You can reach us about privacy at <a href={`mailto:${email}`}>{email}</a>.</>}
           </p>

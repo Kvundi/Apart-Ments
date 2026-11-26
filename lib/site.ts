@@ -1,7 +1,7 @@
 // lib/site.ts — single source of truth for site-wide names, URLs and navigation.
 
 export const SITE = {
-  name: "Apart Ments",
+  name: "28Homes",
   tagline: "Find your home in Kenya",
   description:
     "Search verified homes, apartments and land for sale and rent across Kenya. Contact owners and agents directly on WhatsApp — no viewing fees.",
@@ -44,7 +44,7 @@ export const FOOTER_LINKS: { heading: string; links: { label: string; href: stri
     ],
   },
   {
-    heading: "Apart Ments",
+    heading: "28Homes",
     links: [
       { label: "Home loans", href: "/loans" },
       { label: "Affordable housing", href: "/loans/government" },
