@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import { Callout } from "@/components/ui";
 import { adminConfigured, createAdminClient, getAdminUserId } from "@/lib/admin";
 import { formatKsh, parseImages, toVerificationLevel, verificationBadge } from "@/lib/listing";
+import { calculateCommission, toDealType } from "@/lib/commission";
 import { buildImageOwners, scamFlags, type FlagRow, type ScamFlag } from "@/lib/scamFlags";
 import { approveListing, confirmDeal, markDealLost, rejectListing, setVerificationLevel, updateReport } from "./actions";
 
@@ -211,6 +212,9 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
             {TAB_LABELS[t]} ({counts[t]})
           </Link>
         ))}
+        <Link href="/admin/payments" className="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#f7f5ef] text-[#1a2420]">
+          Payments →
+        </Link>
       </nav>
 
       {tab === "pending" &&
@@ -543,6 +547,12 @@ function LeadsTab({ summary, taps, byId }: { summary: LeadSummary[]; taps: TapRo
   );
 }
 
+/** 28Homes' standard commission for a deal (3% of sale price or one month's rent), as a form default. */
+function suggestedCommission(d: DealRow, l: ListingRow | undefined): string {
+  const type = d.listing_status === "Rented" ? "rent" : toDealType(l?.listing_type);
+  return String(calculateCommission(type, l?.price ?? null)?.subtotal ?? "");
+}
+
 function DealsTab({ deals, byId, taps }: { deals: DealRow[]; byId: Map<string, ListingRow>; taps: TapRow[] }) {
   const possible = deals.filter((d) => d.status === "possible");
   const confirmed = deals.filter((d) => d.status === "confirmed");
@@ -594,7 +604,7 @@ function DealsTab({ deals, byId, taps }: { deals: DealRow[]; byId: Map<string, L
                       </label>
                       <label className="block">
                         <span className="block text-xs font-semibold text-[#6b6358] mb-1">Your commission (KSh)</span>
-                        <input name="commission" inputMode="numeric" required placeholder="e.g. 25000" className={inputCls} />
+                        <input name="commission" inputMode="numeric" required defaultValue={suggestedCommission(d, l)} placeholder="e.g. 25000" className={inputCls} />
                       </label>
                     </div>
                     <input name="notes" maxLength={1000} placeholder="Notes (optional): buyer, how they found us" className={inputCls} />

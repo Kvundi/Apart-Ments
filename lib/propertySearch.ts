@@ -3,7 +3,7 @@
 // page and the saved-search alerts job, so an alert never disagrees with the page.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isSortKey, VERIFIED_MIN_LEVEL, type SortKey } from "@/lib/listing";
+import { isSortKey, VERIFIED_MIN_LEVEL, type SortKey, PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
 
 export type SearchFilters = {
   type: string;      // "sale" | "rent" | ""
@@ -87,7 +87,7 @@ export function buildPropertyQuery(
   { since, limit = 48 }: { since?: string; limit?: number } = {}
 ) {
   // `*` (not a column list) so the page keeps working while new columns are being migrated.
-  let query = supabase.from("properties").select("*").eq("status", "Available");
+  let query = supabase.from("properties").select(PUBLIC_PROPERTY_COLUMNS).eq("status", "Available");
 
   if (f.type === "sale") query = query.eq("listing_type", "Sale");
   else if (f.type === "rent") query = query.eq("listing_type", "Rent");

@@ -14,7 +14,7 @@ import MobileContactBar from "@/components/MobileContactBar";
 import { companyContact, listingRef, whatsappLink } from "@/lib/contact";
 import { toE164, toWhatsAppNumber, formatPhone } from "@/lib/phone";
 import { getDummyContact, placeholderContactsEnabled } from "@/lib/dummyContacts";
-import { parseImages, daysOnSite, verificationBadge, getCoords } from "@/lib/listing";
+import { parseImages, daysOnSite, verificationBadge, getCoords, PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
 import SaveHomeButton from "@/components/SaveHomeButton";
 import ShareButton from "@/components/ShareButton";
 import PaymentEstimate from "@/components/PaymentEstimate";
@@ -67,7 +67,7 @@ type Props = { params: Promise<{ id: string }> };
 const getProperty = cache(async (id: string) => {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("properties").select("*").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("properties").select(PUBLIC_PROPERTY_COLUMNS).eq("id", id).maybeSingle();
   return (data as Property | null) ?? null;
 });
 
@@ -119,10 +119,11 @@ async function PropertyDetail({ property }: { property: Property }) {
   // Owner contact: each listing carries its own owner's name + phone.
   // Older listings without them fall back to the lister's profile.
   const { data: profile } = p.user_id
-    ? await supabase.from("profiles").select("display_name, phone, is_agent, agency_name").eq("user_id", p.user_id).maybeSingle()
+    ? await supabase.from("profiles").select("display_name, is_agent, agency_name").eq("user_id", p.user_id).maybeSingle()
     : { data: null };
   const ownerName = p.contact_name?.trim() || profile?.display_name?.trim() || null;
-  const phone = toE164(p.contact_phone) ?? toE164(profile?.phone);
+  // Lister numbers aren't public any more; this only matters if 28Homes' number is unset.
+  const phone = toE164(p.contact_phone);
   const isAgent = !!profile?.is_agent;
   // Placeholder owners fill gaps in development only (see lib/dummyContacts.ts).
   const dummy = placeholderContactsEnabled() ? getDummyContact(p.id) : null;
@@ -165,7 +166,7 @@ async function PropertyDetail({ property }: { property: Property }) {
   // same area, same property type, then closest price.
   const { data: candidates } = await supabase
     .from("properties")
-    .select("*")
+    .select(PUBLIC_PROPERTY_COLUMNS)
     .eq("status", "Available")
     .eq("listing_type", p.listing_type)
     .neq("id", p.id)

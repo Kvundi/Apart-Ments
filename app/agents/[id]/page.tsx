@@ -7,8 +7,8 @@ import SiteFooter from "@/components/SiteFooter";
 import PropertyCard from "@/components/PropertyCard";
 import { Breadcrumbs } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { toCardData } from "@/lib/listing";
-import { toE164, formatPhone, toWhatsAppNumber } from "@/lib/phone";
+import { toCardData, PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
+import { formatPhone, toWhatsAppNumber } from "@/lib/phone";
 import { initials, firstName } from "@/lib/people";
 import { companyContact, whatsappLink } from "@/lib/contact";
 import { SITE } from "@/lib/site";
@@ -20,9 +20,9 @@ async function load(id: string) {
   const supabase = await createClient();
   const [{ data: profile }, { data: rows }] = await Promise.all([
     supabase.from("profiles")
-      .select("user_id, display_name, full_name, agency_name, location, bio, avatar_url, phone, is_agent, created_at")
+      .select("user_id, display_name, full_name, agency_name, location, bio, avatar_url, is_agent, created_at")
       .eq("user_id", userId).maybeSingle(),
-    supabase.from("properties").select("*").eq("user_id", userId).eq("status", "Available")
+    supabase.from("properties").select(PUBLIC_PROPERTY_COLUMNS).eq("user_id", userId).eq("status", "Available")
       .order("created_at", { ascending: false }).limit(60),
   ]);
   return { userId, profile, listings: (rows ?? []).map((r) => toCardData(r)) };
@@ -49,7 +49,7 @@ export default async function AgentProfilePage({ params }: Props) {
   // Enquiries go to 28Homes, not straight to the lister (falls back to the lister's
   // own number only if 28Homes' number isn't configured).
   const company = companyContact();
-  const phone = company?.phone ?? toE164(profile?.phone);
+  const phone = company?.phone ?? null;
   const whatsapp = company?.whatsapp ?? phone;
   const forSale = listings.filter((l) => l.listing_type === "Sale").length;
   const forRent = listings.filter((l) => l.listing_type === "Rent").length;

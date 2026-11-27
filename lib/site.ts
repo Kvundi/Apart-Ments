@@ -19,6 +19,8 @@ export const SITE = {
    * first and Ken connects them to the lister, so every lead is ours.
    */
   contactPhone: process.env.NEXT_PUBLIC_CONTACT_PHONE || "",
+  /** Launch offer: this many listings are free (homepage counter). */
+  freeListingLimit: 100,
   /** Optional separate WhatsApp number; defaults to contactPhone. */
   contactWhatsApp: process.env.NEXT_PUBLIC_CONTACT_WHATSAPP || process.env.NEXT_PUBLIC_CONTACT_PHONE || "",
 };
@@ -47,6 +49,7 @@ export const FOOTER_LINKS: { heading: string; links: { label: string; href: stri
     links: [
       { label: "Post a listing", href: "/add" },
       { label: "Home value estimate", href: "/valuation" },
+      { label: "Commission calculator", href: "/commission" },
       { label: "Seller's guide", href: "/guides/sell" },
       { label: "Find an agent", href: "/agents" },
     ],

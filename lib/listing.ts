@@ -46,6 +46,16 @@ export function formatKshShort(n: number): string {
  */
 export type VerificationLevel = 0 | 1 | 2 | 3;
 
+/**
+ * Columns the public (anonymous) site may read. Lister contact details, admin notes and
+ * reviewer ids are NOT here: the database only lets anonymous visitors read these
+ * columns (migration 20261127150000_lock_contact_columns.sql). If you add a public
+ * column to `properties`, add it here AND grant it to anon in a new migration.
+ */
+// One literal string (not concatenated) so supabase-js can type the result.
+export const PUBLIC_PROPERTY_COLUMNS =
+  "id, created_at, title, description, price, currency, property_type, bedrooms, bathrooms, location, address, size_sqm, images, user_id, status, latitude, longitude, amenities, listing_type, verification_status, videos, preferred_contact, contact_name, deposit_months, service_charge, water_sources, power_meter, landmark, title_type, expires_at, verification_level, verified_at";
+
 /** The "Verified" search filter and the green badge start at this level. */
 export const VERIFIED_MIN_LEVEL = 2;
 

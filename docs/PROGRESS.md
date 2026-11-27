@@ -8,6 +8,20 @@ Last meeting: [2026-11-26](meetings/2026-11-26.md)
 - **Plan the AI house-hunting assistant.** Owner: CEO → assistant builder. Next meeting, with a cost estimate first.
 - **Ken: visit and photograph 5–10 properties in one estate.** Not approved yet; revisit next meeting.
 
+## Waiting for push (Ken is away from his laptop)
+
+Written to the PC, **not pushed**. Push all together when Ken says go:
+1. **Hide lister contact data from the public API**: 8 pages use `PUBLIC_PROPERTY_COLUMNS`; migration
+   `20261127150000_lock_contact_columns.sql` is applied **after** the deploy is live.
+2. **Free-listings counter** on the homepage (migration already applied).
+3. **Commission payments + calculator** (asked 27 Nov). Spec: `docs/specs/payments.md`. Migration already applied.
+   - Listers pay; 3% of the sale price, or one month's rent.
+   - `/commission` calculator page, plus the terms checkbox and estimate on `/add`.
+   - `/pay/<token>` page: M-Pesa prompt and card/bank through IntaSend, plus bank/Paybill details.
+   - Admin › Payments: invoices, WhatsApp pay links and reminders, recording manual payments, Paid/Pending/Overdue.
+   - Terms section 4 covers commission.
+   - **Collection stays OFF** until Ken adds `EARB_REG_NO` + `EARB_PRACTISING_CERT_NO`. IntaSend keys are needed for online pay.
+
 ## In progress
 
 - **Lead tracking + deal alerts** (asked 27 Nov). Owner: developer → reviewer; new agent: lead-tracker.

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import PropertyCard from "@/components/PropertyCard";
 import { createClient } from "@/lib/supabase/client";
-import { toCardData, type PropertyCardData } from "@/lib/listing";
+import { toCardData, type PropertyCardData, PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
 import { recordView, useRecentlyViewed } from "@/lib/recentlyViewed";
 
 /** Drop on a property page to remember the view. Renders nothing. */
@@ -22,7 +22,7 @@ export default function RecentlyViewed() {
     const wanted = key ? key.split(",") : [];
     if (!wanted.length) return;
     let cancelled = false;
-    createClient().from("properties").select("*").in("id", wanted).then(({ data }) => {
+    createClient().from("properties").select(PUBLIC_PROPERTY_COLUMNS).in("id", wanted).then(({ data }) => {
       if (cancelled) return;
       const byId = new Map((data ?? []).map((r) => [String(r.id), toCardData(r)]));
       setHomes(wanted.map((id) => byId.get(id)).filter((h): h is PropertyCardData => !!h));

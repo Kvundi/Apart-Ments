@@ -12,6 +12,7 @@ import { getCoords } from "@/lib/listing";
 import { LocationPicker } from "@/components/map";
 import { createClient } from "@/lib/supabase/client";
 import { WATER_SOURCES, POWER_METER_LABELS, TITLE_TYPE_LABELS, readDetails } from "@/lib/listingDetails";
+import { calculateCommission, toDealType } from "@/lib/commission";
 
 const AMENITIES_LIST = [
   "Parking", "Garden", "Balcony", "Swimming Pool", "Gym", 
@@ -54,6 +55,7 @@ function AddProperty() {
   const [powerMeter, setPowerMeter] = useState("");
   const [landmark, setLandmark] = useState("");
   const [titleType, setTitleType] = useState("");
+  const [agreeCommission, setAgreeCommission] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -313,6 +315,10 @@ const compressAndUpload = async (file: File): Promise<string> => {
       alert("Please enter a valid phone number, e.g. 0712 345 678 or +254 712 345 678");
       return;
     }
+    if (!isEditing && !agreeCommission) {
+      alert("Please tick the box to accept the commission terms.");
+      return;
+    }
 
     setLoading(true);
 
@@ -347,6 +353,8 @@ const compressAndUpload = async (file: File): Promise<string> => {
           : {}),
         user_id: user?.id,
         verification_status: isEditing ? undefined : 'pending', // Only set pending on new listings
+        // Records when the lister accepted the commission terms (new listings only).
+        ...(isEditing ? {} : { commission_terms_accepted_at: new Date().toISOString() }),
       };
 
       let error;
@@ -647,6 +655,15 @@ const compressAndUpload = async (file: File): Promise<string> => {
             )}
           </div>
 
+          {!isEditing && (
+            <CommissionTerms
+              listingType={formData.listing_type}
+              price={formData.price}
+              checked={agreeCommission}
+              onChange={setAgreeCommission}
+            />
+          )}
+
           <button type="submit" disabled={loading || images.length === 0} className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-[#d6d1c4] text-white font-semibold py-4 rounded-2xl text-lg transition">
             {loading ? "Saving..." : isEditing ? "Update Property" : "Submit for Review"}
           </button>
@@ -658,6 +675,32 @@ const compressAndUpload = async (file: File): Promise<string> => {
           )}
         </form>
       </div>
+    </div>
+  );
+}
+
+/** Commission notice + required checkbox on new listings, with the amount for the price entered. */
+function CommissionTerms({ listingType, price, checked, onChange }: {
+  listingType: string; price: string; checked: boolean; onChange: (v: boolean) => void;
+}) {
+  const type = toDealType(listingType);
+  const calc = calculateCommission(type, Number(price));
+  return (
+    <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5 space-y-3">
+      <p className="font-semibold">Listing is free. You pay only if we bring the {type === "rent" ? "tenant" : "buyer"}.</p>
+      <p className="text-sm text-[#5c554a]">
+        If a client introduced by 28Homes {type === "rent" ? "rents" : "buys"} this property, our commission is{" "}
+        <strong>{type === "rent" ? "one month's rent" : "3% of the final sale price"}</strong>
+        {calc ? <> &mdash; about <strong>KSh {calc.total.toLocaleString("en-KE")}</strong> at this price</> : null}.
+        Buyers and tenants never pay 28Homes. <Link href="/commission" className="text-emerald-700 underline" target="_blank">See how it works</Link>
+      </p>
+      <label className="flex items-start gap-3 text-sm cursor-pointer">
+        <input type="checkbox" required checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-5 w-5 accent-emerald-600" />
+        <span>
+          I agree to pay 28Homes&apos; commission if the deal closes with a client 28Homes introduced, as set out in the{" "}
+          <Link href="/terms#commission" className="text-emerald-700 underline" target="_blank">terms</Link>.
+        </span>
+      </label>
     </div>
   );
 }

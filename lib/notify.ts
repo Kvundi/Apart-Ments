@@ -18,14 +18,15 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type AlertKind = "lead" | "deal";
+export type AlertKind = "lead" | "deal" | "payment";
 
 const LEAD_COOLDOWN_MS = 10 * 60 * 1000;
 const DEFAULT_SMS_CAP = 30;
 
 type AlertInput = {
   kind: AlertKind;
-  propertyId: string;
+  /** Null for payments on an invoice whose listing was deleted. */
+  propertyId: string | null;
   subject: string;
   /** Plain text: used for the email body and (shortened) for the SMS. */
   text: string;
@@ -43,7 +44,7 @@ function startOfTodayNairobiISO(): string {
   return new Date(midnightNairobiAsUtc).toISOString();
 }
 
-async function log(db: SupabaseClient, kind: AlertKind, channel: "email" | "sms", propertyId: string, ok: boolean, detail?: string) {
+async function log(db: SupabaseClient, kind: AlertKind, channel: "email" | "sms", propertyId: string | null, ok: boolean, detail?: string) {
   await db.from("alert_log").insert({ kind, channel, property_id: propertyId, ok, detail: detail?.slice(0, 500) ?? null });
 }
 
@@ -87,7 +88,7 @@ async function sendSms(message: string): Promise<{ ok: boolean; detail?: string 
 /** Sends a lead or deal alert to Ken, respecting the cooldown and SMS cap. Never throws. */
 export async function alertKen(db: SupabaseClient, input: AlertInput): Promise<AlertResult> {
   try {
-    if (input.kind === "lead") {
+    if (input.kind === "lead" && input.propertyId) {
       const since = new Date(Date.now() - LEAD_COOLDOWN_MS).toISOString();
       const { count } = await db
         .from("alert_log")

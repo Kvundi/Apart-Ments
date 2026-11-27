@@ -6,7 +6,7 @@ import SiteFooter from "@/components/SiteFooter";
 import PropertyCard from "@/components/PropertyCard";
 import { PageHero, Prose, Callout, ReviewedNote } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
-import { toCardData, formatKsh } from "@/lib/listing";
+import { toCardData, formatKsh, PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
 import { POPULAR_AREAS, areaOf } from "@/lib/areas";
 import { estimate, type ValuationInput } from "@/lib/valuation";
 
@@ -36,7 +36,7 @@ export default async function ValuationPage({
   };
 
   const supabase = await createClient();
-  const { data: rows } = await supabase.from("properties").select("*").eq("status", "Available").limit(1000);
+  const { data: rows } = await supabase.from("properties").select(PUBLIC_PROPERTY_COLUMNS).eq("status", "Available").limit(1000);
   const all = (rows ?? []).map((r) => toCardData(r));
   const result = submitted ? estimate(all, input) : null;
 

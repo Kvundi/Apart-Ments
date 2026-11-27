@@ -8,17 +8,23 @@ import SiteFooter from "@/components/SiteFooter";
 import HomeSearch from "@/components/HomeSearch";
 import PropertyCard from "@/components/PropertyCard";
 import RecentlyViewed from "@/components/RecentlyViewed";
+import FreeListingsCounter from "@/components/FreeListingsCounter";
 import { createClient } from "@/lib/supabase/server";
-import { toCardData } from "@/lib/listing";
+import { toCardData, PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
 import { areaOf, POPULAR_AREAS } from "@/lib/areas";
+import { SITE } from "@/lib/site";
 
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ data: rows }, { count: agentCount }] = await Promise.all([
-    supabase.from("properties").select("*").eq("status", "Available").order("created_at", { ascending: false }).limit(500),
+  const [{ data: rows }, { count: agentCount }, { data: slotsUsed, error: slotsError }] = await Promise.all([
+    supabase.from("properties").select(PUBLIC_PROPERTY_COLUMNS).eq("status", "Available").order("created_at", { ascending: false }).limit(500),
     supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_agent", true),
+    supabase.rpc("free_listing_slots_used"),
   ]);
+  // Free launch offer counter; hidden if the database function isn't available.
+  const freeUsed = !slotsError && typeof slotsUsed === "number" ? slotsUsed : null;
+  const freeLeft = freeUsed === null ? null : Math.max(SITE.freeListingLimit - freeUsed, 0);
 
   const all = (rows ?? []).map((r) => toCardData(r));
   const latest = all.slice(0, 8);
@@ -64,7 +70,7 @@ export default async function HomePage() {
             Find a home you&apos;ll <span className="text-emerald-300">love</span> in Kenya
           </h1>
           <p className="text-lg md:text-xl text-white/75 mb-10 max-w-2xl mx-auto">
-            Homes, apartments and land for sale and rent — straight from owners and agents, on WhatsApp.
+            Homes, apartments and land for sale and rent from owners and agents. One WhatsApp to 28Homes and we connect you.
           </p>
           <HomeSearch chips={chips} />
         </div>
@@ -81,6 +87,8 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
+
+      {freeUsed !== null && <FreeListingsCounter used={freeUsed} limit={SITE.freeListingLimit} />}
 
       {/* Buy / Rent / Sell — Zillow-style entry points */}
       <section className="max-w-7xl mx-auto px-6 pt-10 md:pt-16">
@@ -189,9 +197,14 @@ export default async function HomePage() {
         <div className="relative overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-[#f4f1e8] px-8 py-14 md:px-14 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold mb-3">Own a property in Kenya?</h2>
-            <p className="text-lg text-[#5c554a] max-w-lg">List it free in a few minutes. Add photos, a map pin and your WhatsApp number — we&apos;ll review it and put it in front of serious buyers and tenants.</p>
+            <p className="text-lg text-[#5c554a] max-w-lg">
+              {freeLeft
+                ? `${freeLeft} of ${SITE.freeListingLimit} free listing slots left. `
+                : "List it in a few minutes. "}
+              Add photos and a map pin — we&apos;ll review it and bring you serious, screened buyers and tenants.
+            </p>
           </div>
-          <Link href="/add" className="shrink-0 inline-flex items-center gap-2 bg-[#1a2420] hover:bg-[#2a352f] text-white font-semibold px-8 py-4 rounded-2xl text-lg transition-colors">
+          <Link href="/add?src=home-cta" className="shrink-0 inline-flex items-center gap-2 bg-[#1a2420] hover:bg-[#2a352f] text-white font-semibold px-8 py-4 rounded-2xl text-lg transition-colors">
             List your property <ArrowRight size={20} />
           </Link>
         </div>

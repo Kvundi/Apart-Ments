@@ -43,30 +43,44 @@ export default function TermsPage() {
             You keep ownership of your content and give us permission to display, resize and promote it on 28Homes and in our alerts while it is listed.
           </p>
 
-          <h2>4. Review and removal</h2>
+          <h2 id="commission">4. Commission for listers</h2>
+          <p>
+            Posting a listing is free. If 28Homes introduces the buyer or tenant and the deal closes, the person who posted the listing agrees to pay
+            28Homes a commission of <strong>3% of the final sale price</strong> for a sale, or <strong>one month&apos;s rent</strong> for a letting.
+            You can work out the amount with our <Link href="/commission">commission calculator</Link>.
+          </p>
+          <ul>
+            <li>A client is &ldquo;introduced by 28Homes&rdquo; if they first contacted you about the property through 28Homes (our WhatsApp, phone or website) within six months before the deal.</li>
+            <li>Commission is due when the sale agreement or tenancy agreement is signed. We send an invoice with a secure pay link; pay within the time shown on it by M-Pesa, card or bank transfer.</li>
+            <li>Buyers and tenants never pay 28Homes a commission or any other fee.</li>
+            <li>VAT is added only if 28Homes is registered for VAT, and is shown separately on the invoice.</li>
+            <li>28Homes only charges commission while it is registered with the Estate Agents Registration Board. Its registration and practising certificate numbers appear on every invoice.</li>
+          </ul>
+
+          <h2>5. Review and removal</h2>
           <p>
             Our team reviews listings before they go live and may edit formatting, ask for more information, decline a listing, or remove one at any
             time — particularly if it is reported, looks fraudulent, or breaks these terms. We may suspend accounts that repeatedly break the rules.
           </p>
 
-          <h2>5. Dealing with owners and agents</h2>
+          <h2>6. Dealing with owners and agents</h2>
           <p>
             Do your own checks before paying anyone: view the property, confirm ownership with an official search, and use an advocate for purchases.
             Our <Link href="/guides/rent">renter safety guide</Link> and <Link href="/guides/buy">buyer&apos;s guide</Link> explain how. If something
             looks wrong, use &ldquo;Report this listing&rdquo;.
           </p>
 
-          <h2>6. Liability</h2>
+          <h2>7. Liability</h2>
           <p>
             We work hard to keep listings genuine, but we can&apos;t guarantee every listing, owner or agent. To the extent the law allows, we aren&apos;t
             liable for losses arising from transactions between users, or from relying on estimates shown on the site. Nothing in these terms limits
             rights you have under Kenyan consumer protection law.
           </p>
 
-          <h2>7. Privacy</h2>
+          <h2>8. Privacy</h2>
           <p>Our <Link href="/privacy">privacy policy</Link> explains how we handle personal data.</p>
 
-          <h2>8. Changes and governing law</h2>
+          <h2>9. Changes and governing law</h2>
           <p>
             We may update these terms and will show the date of the latest version below. These terms are governed by the laws of Kenya, and the
             courts of Kenya have jurisdiction over disputes.

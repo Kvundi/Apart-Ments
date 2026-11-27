@@ -10,6 +10,7 @@ import SiteFooter from "@/components/SiteFooter";
 import PropertyCard, { toCardData, type PropertyCardData } from "@/components/PropertyCard";
 import { createClient, createAuthClient } from "@/lib/supabase/client";
 import { useSavedHomes } from "@/lib/savedHomes";
+import { PUBLIC_PROPERTY_COLUMNS } from "@/lib/listing";
 
 export default function SavedPage() {
   return (
@@ -60,7 +61,7 @@ function SavedHomes() {
     let cancelled = false;
     createClient()
       .from("properties")
-      .select("*")
+      .select(PUBLIC_PROPERTY_COLUMNS)
       .in("id", savedIds)
       .then(({ data }) => {
         if (cancelled) return;
