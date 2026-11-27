@@ -95,7 +95,18 @@ export default function MyListingsPage() {
       const supabase = await createAuthClient_FreePlan(getToken);
       const { error } = await supabase.from("properties").update({ status }).eq("id", id).eq("user_id", user?.id ?? "");
       if (error) alert(`Couldn't update status: ${error.message}`);
-      else setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+      else {
+        setProperties((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+        // Tell 28Homes a deal may have closed (the server checks it really did).
+        if (status === "Sold" || status === "Rented") {
+          fetch("/api/deal-signal", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ propertyId: id }),
+            keepalive: true,
+          }).catch(() => {});
+        }
+      }
     } finally {
       setUpdating(null);
     }

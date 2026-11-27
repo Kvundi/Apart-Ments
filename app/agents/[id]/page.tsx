@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/server";
 import { toCardData } from "@/lib/listing";
 import { toE164, formatPhone, toWhatsAppNumber } from "@/lib/phone";
 import { initials, firstName } from "@/lib/people";
+import { companyContact, whatsappLink } from "@/lib/contact";
+import { SITE } from "@/lib/site";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -40,11 +42,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function AgentProfilePage({ params }: Props) {
   const { id } = await params;
-  const { profile, listings } = await load(id);
+  const { userId, profile, listings } = await load(id);
   if (!profile && listings.length === 0) notFound();
 
   const name = profile?.display_name || profile?.full_name || "28Homes member";
-  const phone = toE164(profile?.phone);
+  // Enquiries go to 28Homes, not straight to the lister (falls back to the lister's
+  // own number only if 28Homes' number isn't configured).
+  const company = companyContact();
+  const phone = company?.phone ?? toE164(profile?.phone);
+  const whatsapp = company?.whatsapp ?? phone;
   const forSale = listings.filter((l) => l.listing_type === "Sale").length;
   const forRent = listings.filter((l) => l.listing_type === "Rent").length;
   const memberSince = profile?.created_at
@@ -81,13 +87,15 @@ export default async function AgentProfilePage({ params }: Props) {
             </div>
             {phone && (
               <div className="flex gap-2">
-                <a href={`https://wa.me/${toWhatsAppNumber(phone)}?text=${encodeURIComponent(`Hi ${firstName(name)}, I found your profile on 28Homes.`)}`}
+                <a href={company && whatsapp
+                    ? whatsappLink(whatsapp, `Hi 28Homes, I'm interested in listings by ${name}. ${SITE.url}/agents/${encodeURIComponent(userId)}`)
+                    : `https://wa.me/${toWhatsAppNumber(whatsapp ?? phone)}?text=${encodeURIComponent(`Hi ${firstName(name)}, I found your profile on 28Homes.`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebe5c] text-white font-semibold px-5 py-3 rounded-2xl">
                   <MessageCircle size={18} /> WhatsApp
                 </a>
                 <a href={`tel:${phone}`} className="inline-flex items-center gap-2 border border-[#e6e2d8] hover:border-emerald-300 font-semibold px-5 py-3 rounded-2xl bg-white">
-                  <Phone size={18} /> {formatPhone(phone)}
+                  <Phone size={18} /> {company ? "Call 28Homes" : formatPhone(phone)}
                 </a>
               </div>
             )}

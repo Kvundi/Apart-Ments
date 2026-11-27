@@ -10,6 +10,8 @@ import SiteFooter from "@/components/SiteFooter";
 import ImageGallery from "@/components/ImageGallery";
 import CallAgentButton from "@/components/CallAgentButton";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import MobileContactBar from "@/components/MobileContactBar";
+import { companyContact, listingRef, whatsappLink } from "@/lib/contact";
 import { toE164, toWhatsAppNumber, formatPhone } from "@/lib/phone";
 import { getDummyContact, placeholderContactsEnabled } from "@/lib/dummyContacts";
 import { parseImages, daysOnSite, verificationBadge, getCoords } from "@/lib/listing";
@@ -26,7 +28,7 @@ import { SITE } from "@/lib/site";
 import { readDetails, hasAnyDetails, POWER_METER_LABELS, TITLE_TYPE_LABELS } from "@/lib/listingDetails";
 import {
   MapPin, BedDouble, Bath, Maximize, CheckCircle2,
-  MessageCircle, Phone,
+  Phone,
   Calendar, Shield, BadgeCheck, PhoneOff, ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
@@ -129,10 +131,22 @@ async function PropertyDetail({ property }: { property: Property }) {
   const ownerInitials = owner
     ? owner.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")
     : "KY";
-  const whatsappText = encodeURIComponent(
-    `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on 28Homes (ref ${p.id.slice(0, 8)})`
-  );
-  const whatsappHref = ownerPhone ? `https://wa.me/${toWhatsAppNumber(ownerPhone)}?text=${whatsappText}` : null;
+  // Clients contact 28Homes, not the lister: Ken receives every enquiry and connects
+  // the client to the lister. If 28Homes' number isn't configured yet, fall back to the
+  // lister's own number so the page still works.
+  const company = companyContact();
+  const contactPhone: string | null = company?.phone ?? ownerPhone;
+  const contactWhatsApp: string | null = company?.whatsapp ?? ownerPhone;
+  const whatsappHref = contactWhatsApp
+    ? company
+      ? whatsappLink(
+          contactWhatsApp,
+          `Hi 28Homes, I'm interested in "${p.title}" (ref ${listingRef(p.id)}). ${SITE.url}/properties/${p.id}`,
+        )
+      : `https://wa.me/${toWhatsAppNumber(contactWhatsApp)}?text=${encodeURIComponent(
+          `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on 28Homes (ref ${p.id.slice(0, 8)})`,
+        )}`
+    : null;
   const badge = verificationBadge(p.verification_level);
   const coords = getCoords(p);
 
@@ -441,7 +455,9 @@ async function PropertyDetail({ property }: { property: Property }) {
               <div className="bg-white border border-[#e6e2d8] rounded-3xl p-6 shadow-sm">
                 <h3 className="text-lg font-bold mb-1">Interested in this property?</h3>
                 <p className="text-sm text-[#6b6358] mb-5">
-                  Contact the owner or agent directly — no middlemen.
+                  {company
+                    ? "Message or call 28Homes. We connect you with the owner or agent and help arrange your viewing. No viewing fees."
+                    : "Contact the owner or agent directly — no middlemen."}
                 </p>
 
                 {/* Listed by */}
@@ -457,7 +473,9 @@ async function PropertyDetail({ property }: { property: Property }) {
                         {isAgent && <span className="text-[10px] font-semibold uppercase bg-[#1a2420] text-white px-1.5 py-0.5 rounded">Agent</span>}
                       </p>
                       {isAgent && profile?.agency_name && <p className="text-xs text-[#6b6358] truncate">{profile.agency_name}</p>}
-                      {ownerPhone ? (
+                      {company ? (
+                        <p className="text-sm text-[#6b6358]">Contact through 28Homes · ref {listingRef(p.id)}</p>
+                      ) : ownerPhone ? (
                         <a
                           href={`tel:${ownerPhone}`}
                           className="inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:text-emerald-600 font-medium"
@@ -479,10 +497,10 @@ async function PropertyDetail({ property }: { property: Property }) {
                   )}
                 </div>
 
-                {whatsappHref && ownerPhone ? (
+                {whatsappHref && contactPhone ? (
                   <>
                     <WhatsAppButton href={whatsappHref} propertyId={p.id} />
-                    <CallAgentButton phone={ownerPhone} name={owner ?? "owner"} propertyId={p.id} />
+                    <CallAgentButton phone={contactPhone} name={company ? company.name : owner ?? "owner"} propertyId={p.id} />
                   </>
                 ) : (
                   <p className="text-sm text-[#6b6358] bg-[#f7f5ef] rounded-2xl p-4">
@@ -557,20 +575,8 @@ async function PropertyDetail({ property }: { property: Property }) {
         )}
       </div>
       {/* Mobile: contact bar pinned above the bottom navigation (Zillow-style) */}
-      {whatsappHref && ownerPhone && (
-        <>
-          <div className="h-20 lg:hidden" aria-hidden="true" />
-          <div className="lg:hidden fixed inset-x-0 bottom-[58px] z-40 bg-white/95 backdrop-blur border-t border-[#e6e2d8] px-4 py-3 flex gap-3 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#25D366] text-white font-semibold py-3 rounded-xl">
-              <MessageCircle size={18} /> WhatsApp
-            </a>
-            <a href={`tel:${ownerPhone}`}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-emerald-600 text-white font-semibold py-3 rounded-xl">
-              <Phone size={18} /> Call
-            </a>
-          </div>
-        </>
+      {whatsappHref && contactPhone && (
+        <MobileContactBar whatsappHref={whatsappHref} phone={contactPhone} propertyId={p.id} />
       )}
 
       <SiteFooter />

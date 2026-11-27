@@ -31,7 +31,7 @@ export default function RentGuidePage() {
           <p className="font-semibold text-emerald-900 mb-2">On 28Homes</p>
           <ul className="text-sm text-emerald-900 space-y-2 list-disc pl-5">
             <li>Every listing is reviewed before it goes live</li>
-            <li>You contact the lister directly — we never charge you</li>
+            <li>You contact 28Homes and we connect you with the lister — we never charge you</li>
             <li>See something wrong? Use &ldquo;Report this listing&rdquo;</li>
           </ul>
           <Link href="/properties?type=rent" className="inline-block mt-4 text-sm font-semibold text-emerald-800 hover:underline">Browse rentals →</Link>

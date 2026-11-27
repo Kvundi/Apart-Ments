@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { AlertTriangle, BadgeCheck, Flag, Phone, ShieldAlert } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Flag, HandCoins, MessageCircle, Phone, ShieldAlert } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { Callout } from "@/components/ui";
 import { adminConfigured, createAdminClient, getAdminUserId } from "@/lib/admin";
 import { formatKsh, parseImages, toVerificationLevel, verificationBadge } from "@/lib/listing";
 import { buildImageOwners, scamFlags, type FlagRow, type ScamFlag } from "@/lib/scamFlags";
-import { approveListing, rejectListing, setVerificationLevel, updateReport } from "./actions";
+import { approveListing, confirmDeal, markDealLost, rejectListing, setVerificationLevel, updateReport } from "./actions";
 
 export const metadata: Metadata = {
   title: "Review listings",
   robots: { index: false, follow: false },
 };
 
-type Tab = "pending" | "reports" | "live";
+type Tab = "pending" | "reports" | "live" | "leads" | "deals";
+const TAB_LABELS: Record<Tab, string> = { pending: "Pending", reports: "Reports", live: "Live", leads: "Leads", deals: "Deals" };
 type PageProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 type ListingRow = FlagRow & {
@@ -26,6 +27,22 @@ type ListingRow = FlagRow & {
   verification_level: number;
   verified_at: string | null;
 };
+
+type TapRow = { id: string; property_id: string; channel: string; created_at: string };
+type DealRow = {
+  id: string;
+  property_id: string;
+  status: "possible" | "confirmed" | "lost";
+  listing_status: string | null;
+  deal_price: number | null;
+  commission: number | null;
+  notes: string | null;
+  reported_at: string;
+  decided_at: string | null;
+};
+const CHANNEL_LABELS: Record<string, string> = { whatsapp: "WhatsApp", call: "Call", copy_number: "Copied number" };
+const DAY_MS = 24 * 60 * 60 * 1000;
+const daysAgoISO = (days: number) => new Date(Date.now() - days * DAY_MS).toISOString();
 
 type ReportRow = {
   id: string;
@@ -93,7 +110,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
   const sp = await searchParams;
   const tabParam = typeof sp.tab === "string" ? sp.tab : "";
-  const tab: Tab = tabParam === "reports" || tabParam === "live" ? tabParam : "pending";
+  const tab: Tab = tabParam in TAB_LABELS ? (tabParam as Tab) : "pending";
   const notice = typeof sp.notice === "string" ? sp.notice.slice(0, 200) : "";
 
   if (!adminConfigured()) {
@@ -109,7 +126,12 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
 
   const supabase = createAdminClient();
   // One read of every listing (small for now) powers all three tabs and the scam flags.
-  const [{ data: listingData, error: listingError }, { data: reportData, error: reportError }] = await Promise.all([
+  const [
+    { data: listingData, error: listingError },
+    { data: reportData, error: reportError },
+    { data: tapData },
+    { data: dealData, error: dealError },
+  ] = await Promise.all([
     supabase.from("properties").select(COLUMNS).order("created_at", { ascending: false }).limit(2000),
     supabase
       .from("listing_reports")
@@ -117,16 +139,23 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("contact_events")
+      .select("id, property_id, channel, created_at")
+      .gte("created_at", daysAgoISO(30))
+      .order("created_at", { ascending: false })
+      .limit(2000),
+    supabase.from("deals").select("*").order("reported_at", { ascending: false }).limit(500),
   ]);
 
-  if (listingError || reportError) {
-    const message = listingError?.message ?? reportError?.message ?? "";
-    const needsMigration = /verification_level|verified_at/.test(message);
+  if (listingError || reportError || dealError) {
+    const message = listingError?.message ?? reportError?.message ?? dealError?.message ?? "";
+    const needsMigration = /verification_level|verified_at|deals/.test(message);
     return (
       <Shell>
         <Callout tone="warn" title={needsMigration ? "Run the database migration first" : "Couldn't load listings"}>
           {needsMigration ? (
-            <>Run <code>supabase/migrations/20261126120000_verification_levels.sql</code> in the Supabase SQL editor, then reload.</>
+            <>Run the newest file in <code>supabase/migrations/</code> in the Supabase SQL editor, then reload.</>
           ) : (
             message
           )}
@@ -148,7 +177,18 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
   const pending = all.filter((r) => r.verification_status === "pending" || r.verification_status === "changes_requested");
   const approved = all.filter((r) => r.verification_status === "approved");
 
-  const counts: Record<Tab, number> = { pending: pending.length, reports: reports.length, live: approved.length };
+  const taps = (tapData ?? []) as TapRow[];
+  const deals = (dealData ?? []) as DealRow[];
+  const possibleDeals = deals.filter((d) => d.status === "possible");
+  const leadSummary = summariseLeads(taps);
+
+  const counts: Record<Tab, number> = {
+    pending: pending.length,
+    reports: reports.length,
+    live: approved.length,
+    leads: taps.length,
+    deals: possibleDeals.length,
+  };
 
   return (
     <Shell>
@@ -159,7 +199,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
       )}
 
       <nav className="flex gap-2 mb-6 overflow-x-auto" aria-label="Review tabs">
-        {(["pending", "reports", "live"] as Tab[]).map((t) => (
+        {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
           <Link
             key={t}
             href={`/admin/listings?tab=${t}`}
@@ -168,7 +208,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
               tab === t ? "bg-emerald-600 text-white" : "bg-[#f7f5ef] text-[#1a2420]"
             }`}
           >
-            {t === "pending" ? "Pending" : t === "reports" ? "Reports" : "Live"} ({counts[t]})
+            {TAB_LABELS[t]} ({counts[t]})
           </Link>
         ))}
       </nav>
@@ -279,6 +319,8 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
             ))}
           </div>
         ))}
+      {tab === "leads" && <LeadsTab summary={leadSummary} taps={taps} byId={byId} />}
+      {tab === "deals" && <DealsTab deals={deals} byId={byId} taps={taps} />}
     </Shell>
   );
 }
@@ -403,5 +445,209 @@ function ListingCard({
 
       <div className="mt-4">{children}</div>
     </article>
+  );
+}
+
+type LeadSummary = { propertyId: string; total: number; last7: number; lastAt: string; channels: Record<string, number> };
+
+function summariseLeads(taps: TapRow[]): LeadSummary[] {
+  const weekAgo = Date.now() - 7 * DAY_MS;
+  const map = new Map<string, LeadSummary>();
+  for (const t of taps) {
+    const s = map.get(t.property_id) ?? { propertyId: t.property_id, total: 0, last7: 0, lastAt: t.created_at, channels: {} };
+    s.total += 1;
+    if (new Date(t.created_at).getTime() >= weekAgo) s.last7 += 1;
+    if (t.created_at > s.lastAt) s.lastAt = t.created_at;
+    s.channels[t.channel] = (s.channels[t.channel] ?? 0) + 1;
+    map.set(t.property_id, s);
+  }
+  return [...map.values()].sort((a, b) => b.last7 - a.last7 || b.total - a.total);
+}
+
+function LeadsTab({ summary, taps, byId }: { summary: LeadSummary[]; taps: TapRow[]; byId: Map<string, ListingRow> }) {
+  if (taps.length === 0) {
+    return <Empty text="No leads in the last 30 days. A lead is a tap on WhatsApp, Call or Copy number." />;
+  }
+  const weekCount = summary.reduce((n, s) => n + s.last7, 0);
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3">
+        <Stat label="Leads, last 7 days" value={String(weekCount)} />
+        <Stat label="Leads, last 30 days" value={String(taps.length)} />
+      </div>
+
+      <section>
+        <h2 className="font-bold mb-3">By listing</h2>
+        <div className="space-y-3">
+          {summary.map((s) => {
+            const l = byId.get(s.propertyId);
+            return (
+              <div key={s.propertyId} className="border border-[#e6e2d8] rounded-2xl p-4 bg-white">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold leading-snug">{l?.title ?? "Deleted listing"}</p>
+                    <p className="text-sm text-[#6b6358]">
+                      {l?.location ?? ""}
+                      {l?.price != null ? ` · ${formatKsh(l.price)}` : ""}
+                    </p>
+                  </div>
+                  <p className="text-right shrink-0">
+                    <span className="block text-xl font-bold">{s.last7}</span>
+                    <span className="block text-xs text-[#6b6358]">this week</span>
+                  </p>
+                </div>
+                <p className="text-xs text-[#6b6358] mt-2">
+                  {s.total} in 30 days ·{" "}
+                  {Object.entries(s.channels)
+                    .map(([c, n]) => `${CHANNEL_LABELS[c] ?? c} ${n}`)
+                    .join(" · ")}{" "}
+                  · last {formatDate(s.lastAt)}
+                </p>
+                {l && (
+                  <p className="text-sm mt-2 flex items-center gap-2">
+                    <Phone size={14} className="text-emerald-600 shrink-0" />
+                    {l.contact_name || "Lister"} ·{" "}
+                    {l.contact_phone ? (
+                      <a href={`tel:${l.contact_phone}`} className="text-emerald-700 underline">
+                        {l.contact_phone}
+                      </a>
+                    ) : (
+                      "no phone"
+                    )}
+                    {l.status && l.status !== "Available" && <span className="text-xs px-2 py-0.5 rounded-full bg-[#f7f5ef]">{l.status}</span>}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-bold mb-3">Latest taps</h2>
+        <ul className="divide-y divide-[#e6e2d8] border border-[#e6e2d8] rounded-2xl bg-white">
+          {taps.slice(0, 25).map((t) => (
+            <li key={t.id} className="flex items-center gap-3 px-4 py-2.5 text-sm">
+              <MessageCircle size={14} className="text-emerald-600 shrink-0" />
+              <span className="shrink-0 font-medium">{CHANNEL_LABELS[t.channel] ?? t.channel}</span>
+              <span className="truncate text-[#6b6358]">{byId.get(t.property_id)?.title ?? "Deleted listing"}</span>
+              <span className="ml-auto shrink-0 text-xs text-[#6b6358]">{formatDate(t.created_at)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function DealsTab({ deals, byId, taps }: { deals: DealRow[]; byId: Map<string, ListingRow>; taps: TapRow[] }) {
+  const possible = deals.filter((d) => d.status === "possible");
+  const confirmed = deals.filter((d) => d.status === "confirmed");
+  const lost = deals.filter((d) => d.status === "lost");
+  const totalCommission = confirmed.reduce((n, d) => n + (Number(d.commission) || 0), 0);
+  const leadsFor = (id: string) => taps.filter((t) => t.property_id === id).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3">
+        <Stat label="Confirmed deals" value={String(confirmed.length)} />
+        <Stat label="Commission earned" value={formatKsh(totalCommission)} />
+      </div>
+
+      <section>
+        <h2 className="font-bold mb-3">To confirm ({possible.length})</h2>
+        {possible.length === 0 ? (
+          <Empty text="No new deals. When a lister marks a listing Sold or Rented it appears here and you get an alert." />
+        ) : (
+          <div className="space-y-4">
+            {possible.map((d) => {
+              const l = byId.get(d.property_id);
+              return (
+                <article key={d.id} className="border border-emerald-300 rounded-2xl p-4 bg-white">
+                  <p className="flex items-center gap-2 font-semibold">
+                    <HandCoins size={16} className="text-emerald-600" /> {l?.title ?? "Listing"}
+                  </p>
+                  <p className="text-sm text-[#6b6358] mt-1">
+                    Marked <strong>{d.listing_status}</strong> {formatDate(d.reported_at)} · asking{" "}
+                    {l?.price != null ? formatKsh(l.price) : "—"} · {leadsFor(d.property_id)} leads (30 days)
+                  </p>
+                  {l && (
+                    <p className="text-sm mt-1">
+                      Lister: {l.contact_name || "—"}{" "}
+                      {l.contact_phone && (
+                        <a href={`tel:${l.contact_phone}`} className="text-emerald-700 underline">
+                          {l.contact_phone}
+                        </a>
+                      )}
+                    </p>
+                  )}
+                  <form action={confirmDeal} className="space-y-2 mt-3">
+                    <input type="hidden" name="id" value={d.id} />
+                    <input type="hidden" name="tab" value="deals" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="block text-xs font-semibold text-[#6b6358] mb-1">Final price (KSh)</span>
+                        <input name="deal_price" inputMode="numeric" defaultValue={l?.price != null ? String(l.price) : ""} className={inputCls} />
+                      </label>
+                      <label className="block">
+                        <span className="block text-xs font-semibold text-[#6b6358] mb-1">Your commission (KSh)</span>
+                        <input name="commission" inputMode="numeric" required placeholder="e.g. 25000" className={inputCls} />
+                      </label>
+                    </div>
+                    <input name="notes" maxLength={1000} placeholder="Notes (optional): buyer, how they found us" className={inputCls} />
+                    <button className="w-full bg-emerald-600 text-white font-semibold py-3 rounded-xl">Confirm deal</button>
+                  </form>
+                  <form action={markDealLost} className="mt-2">
+                    <input type="hidden" name="id" value={d.id} />
+                    <input type="hidden" name="tab" value="deals" />
+                    <button className="w-full bg-white border border-[#e6e2d8] text-[#6b6358] font-semibold py-2.5 rounded-xl text-sm">
+                      Not through 28Homes / fell through
+                    </button>
+                  </form>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {(confirmed.length > 0 || lost.length > 0) && (
+        <section>
+          <h2 className="font-bold mb-3">History</h2>
+          <ul className="divide-y divide-[#e6e2d8] border border-[#e6e2d8] rounded-2xl bg-white">
+            {[...confirmed, ...lost]
+              .sort((a, b) => (b.decided_at ?? "").localeCompare(a.decided_at ?? ""))
+              .map((d) => (
+                <li key={d.id} className="px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium truncate">{byId.get(d.property_id)?.title ?? "Deleted listing"}</span>
+                    <span
+                      className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        d.status === "confirmed" ? "bg-emerald-50 text-emerald-700" : "bg-[#f7f5ef] text-[#6b6358]"
+                      }`}
+                    >
+                      {d.status === "confirmed" ? `+ ${formatKsh(Number(d.commission) || 0)}` : "Not ours"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#6b6358] mt-0.5">
+                    {d.listing_status} · {d.deal_price != null ? formatKsh(Number(d.deal_price)) : "price not recorded"} ·{" "}
+                    {formatDate(d.decided_at)}
+                    {d.notes ? ` · ${d.notes}` : ""}
+                  </p>
+                </li>
+              ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-[#f7f5ef] p-4">
+      <p className="text-xs font-semibold text-[#6b6358] uppercase tracking-wider">{label}</p>
+      <p className="text-2xl font-bold mt-1">{value}</p>
+    </div>
   );
 }

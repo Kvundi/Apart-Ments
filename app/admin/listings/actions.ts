@@ -9,7 +9,7 @@ import { createAdminClient, requireAdmin } from "@/lib/admin";
 import { toVerificationLevel } from "@/lib/listing";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const TABS = new Set(["pending", "reports", "live"]);
+const TABS = new Set(["pending", "reports", "live", "leads", "deals"]);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function str(formData: FormData, key: string, max = 500): string {
@@ -148,4 +148,55 @@ export async function updateReport(formData: FormData) {
   if (error) throw new Error(`Report update failed: ${error.message}`);
   revalidatePath("/admin/listings");
   backTo(formData, `Report marked ${status}.`);
+}
+
+function amount(formData: FormData, key: string): number | null {
+  const raw = str(formData, key, 20).replace(/[,\s]/g, "");
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : NaN;
+}
+
+/** Confirm a possible deal and record the final price and Ken's commission. */
+export async function confirmDeal(formData: FormData) {
+  const actor = await requireAdmin();
+  const id = str(formData, "id", 36);
+  if (!UUID.test(id)) throw new Error("Invalid deal id");
+  const price = amount(formData, "deal_price");
+  const commission = amount(formData, "commission");
+  if (Number.isNaN(price) || Number.isNaN(commission)) backTo(formData, "Price and commission must be numbers in KSh.");
+  if (commission == null) backTo(formData, "Enter your commission (0 if none) to confirm the deal.");
+
+  const { data, error } = await createAdminClient()
+    .from("deals")
+    .update({
+      status: "confirmed",
+      deal_price: price,
+      commission,
+      notes: str(formData, "notes", 1000) || null,
+      decided_at: new Date().toISOString(),
+      decided_by: actor,
+    })
+    .eq("id", id)
+    .eq("status", "possible")
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(`Confirm failed: ${error.message}`);
+  revalidatePath("/admin/listings");
+  backTo(formData, data ? "Deal confirmed and commission recorded." : "That deal was already decided.");
+}
+
+/** The listing was marked Sold/Rented but the deal didn't come through 28Homes (or fell through). */
+export async function markDealLost(formData: FormData) {
+  const actor = await requireAdmin();
+  const id = str(formData, "id", 36);
+  if (!UUID.test(id)) throw new Error("Invalid deal id");
+  const { error } = await createAdminClient()
+    .from("deals")
+    .update({ status: "lost", notes: str(formData, "notes", 1000) || null, decided_at: new Date().toISOString(), decided_by: actor })
+    .eq("id", id)
+    .eq("status", "possible");
+  if (error) throw new Error(`Update failed: ${error.message}`);
+  revalidatePath("/admin/listings");
+  backTo(formData, "Deal marked as not ours / fell through.");
 }

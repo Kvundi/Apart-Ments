@@ -25,7 +25,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   const qs = new URLSearchParams(activeParams(f, { includeSort: false })).toString();
   return {
     title,
-    description: `Browse ${title.toLowerCase()} on 28Homes. Every listing is reviewed — contact owners and agents directly on WhatsApp, with no viewing fees.`,
+    description: `Browse ${title.toLowerCase()} on 28Homes. Every listing is reviewed — message 28Homes on WhatsApp and we connect you with the owner or agent, with no viewing fees.`,
     alternates: { canonical: `/properties${qs ? `?${qs}` : ""}` },
   };
 }

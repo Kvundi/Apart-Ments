@@ -536,7 +536,10 @@ const compressAndUpload = async (file: File): Promise<string> => {
           {/* Contact Info */}
           <div className="card rounded-2xl p-6 space-y-4 border border-[#e6e2d8]">
             <h3 className="font-semibold text-lg">Contact Information</h3>
-            <p className="text-sm text-[#6b6358]">This is shown on your listing so interested buyers and tenants can reach you.</p>
+            <p className="text-sm text-[#6b6358]">
+              Your number stays private. Interested buyers and tenants contact 28Homes, and we pass serious
+              enquiries to you on this number so you can arrange viewings.
+            </p>
 
             <div>
               <label className="block text-sm font-medium mb-2 text-[#6b6358]">Owner / Agent Name *</label>

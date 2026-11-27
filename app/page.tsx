@@ -87,7 +87,7 @@ export default async function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
           {[
             { icon: Home, title: "Buy a home", body: "Browse houses, apartments and land, then estimate your monthly repayment on every listing.", cta: "Browse homes", href: "/properties?type=sale" },
-            { icon: KeyRound, title: "Rent a home", body: "See the full move-in cost upfront and message the owner directly — never pay to view.", cta: "Find rentals", href: "/properties?type=rent" },
+            { icon: KeyRound, title: "Rent a home", body: "See the full move-in cost upfront and message us on WhatsApp — we connect you with the owner. Never pay to view.", cta: "Find rentals", href: "/properties?type=rent" },
             { icon: HandCoins, title: "Sell or let", body: "List for free, reach serious buyers and tenants, and get a price estimate from comparable listings.", cta: "Post a listing", href: "/add" },
           ].map((c) => (
             <Link key={c.title} href={c.href} className="group rounded-3xl border border-[#e6e2d8] p-5 md:p-7 hover:border-emerald-300 hover:shadow-lg transition-all bg-white">
@@ -171,7 +171,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: BadgeCheck, title: "Reviewed before it goes live", body: "Our team checks every listing before it's published, and anything reported is reviewed again." },
-              { icon: MessageCircle, title: "Talk to the owner directly", body: "Message or call the person who listed the home on WhatsApp — no sign-up needed to make contact." },
+              { icon: MessageCircle, title: "One message to 28Homes", body: "WhatsApp or call us about any home — we connect you with the owner or agent and help set up the viewing. No sign-up needed." },
               { icon: Flag, title: "Report anything suspicious", body: "Asked for a viewing fee or a deposit before viewing? Report the listing in two taps." },
             ].map((c) => (
               <div key={c.title}>

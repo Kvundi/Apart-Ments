@@ -10,30 +10,31 @@ Last meeting: [2026-11-26](meetings/2026-11-26.md)
 
 ## In progress
 
-(none)
+- **Lead tracking + deal alerts** (asked 27 Nov). Owner: developer → reviewer; new agent: lead-tracker.
+  Built: instant email/SMS alert per lead (max 1 per listing per 10 min, max 30 SMS/day), possible deal when a
+  lister marks Sold/Rented, admin Leads and Deals tabs (confirm price + commission), `scripts/leads-report.mjs`,
+  agent file `docs/agents/lead-tracker.md`. Spec: `docs/specs/leads-and-deals.md`.
+  Waiting for Ken: Resend + Africa's Talking accounts and keys in Vercel; copy the agent file into `.claude/agents/`.
+
+- **Route all client contact through Ken's number** (asked 27 Nov). Built: listing page, mobile bar (now also
+  logs leads), lister profile page, Post Listing notice, site wording. Waiting for: Ken's number in Vercel
+  (`NEXT_PUBLIC_CONTACT_PHONE`), then push. Next: lock lister phone columns in the database.
 
 ## Waiting for review
 
-These are built, typechecked, linted and build-tested, but **not committed or deployed**. Ken tests, then commits.
-
-- **Task 1: Verification spec.** `docs/specs/verification.md`.
-  Done when: Ken approves the spec.
-- **Task 2: Admin review page at `/admin/listings`.** Files: `app/admin/`, `lib/admin.ts`, `lib/scamFlags.ts`,
-  `proxy.ts`, `supabase/migrations/20261126120000_verification_levels.sql`.
-  Done when: on his phone Ken approves a test listing at level 2 or 3, and the green badge appears on the
-  card and the detail page. A different signed-in account opening `/admin/listings` gets "not found".
-- **Task 3: "Verified only" filter and stronger badge.** Files: `lib/listing.ts`, `lib/propertySearch.ts`,
-  `components/PropertiesFilter.tsx`, `components/PropertyCard.tsx`, `app/properties/(list)/page.tsx`,
-  `app/properties/[id]/page.tsx`.
-  Done when: the "Verified only" chip works at phone width (375px) and hides unverified listings.
-
-### Before testing (Ken)
-
-1. Run `supabase/migrations/20261126120000_verification_levels.sql` in the Supabase SQL editor.
-   After this, the 3 current live listings show **no** badge until you verify them. This is intended.
-2. Make sure `SUPABASE_SERVICE_ROLE_KEY` is set in `.env.local` and on the host (the alerts job already needs it).
-3. Optional: set `ADMIN_USER_IDS` to your Clerk user id. If it isn't set, `COMPANY_AGENT_USER_ID` is used.
+- **Tasks 1–3 (verification): tested 27 Nov, waiting for Ken to commit and push.**
+  The live site will update automatically after the push (Vercel).
+  - Spec `docs/specs/verification.md`: still needs Ken's sign-off.
+  - Database migration: applied to Supabase on 26 Nov and tested (owners can't self-verify; photo swap resets level).
+  - Tested in Chrome at phone width: admin page loads for Ken; setting level 3 shows the green
+    "Verified · visited" badge on the card and detail page; "Verified only" shows 1 of 3 and toggles off;
+    unverified listings show "Not yet verified… never pay a viewing fee"; a test scam listing showed both
+    red flags (price 89% below similar, viewing fee) and rejecting it saved the reason and the review log.
+    Test data was removed afterwards; all 3 real listings are back at level 0.
+  - Not tested: a second, non-admin account getting "not found" (needs another Google account).
 
 ## Done
+
+- 27 Nov: local dev fixed (corrupt `.next` cache, Clerk keys from two different apps, PC clock 2 min fast).
 
 - 26 Nov: agent team set up (`.claude/agents/`) and docs folder created.
