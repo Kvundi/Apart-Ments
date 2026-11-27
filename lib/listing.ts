@@ -40,11 +40,36 @@ export function formatKshShort(n: number): string {
 }
 
 /**
- * Listings the 28Homes team has checked. `verification_status` is set during
- * review; "verified" and "approved" both count so either naming works.
+ * How much the 28Homes team has checked a listing (docs/specs/verification.md).
+ * `verification_status` only says whether a listing is live; the trust level is separate.
+ *   0 = not verified · 1 = phone confirmed · 2 = owner verified · 3 = property visited
  */
-export function isVerifiedListing(status: string | null | undefined): boolean {
-  return status === "verified" || status === "approved";
+export type VerificationLevel = 0 | 1 | 2 | 3;
+
+/** The "Verified" search filter and the green badge start at this level. */
+export const VERIFIED_MIN_LEVEL = 2;
+
+export function toVerificationLevel(value: unknown): VerificationLevel {
+  const n = Number(value);
+  return n === 1 || n === 2 || n === 3 ? n : 0;
+}
+
+export function isVerifiedListing(level: unknown): boolean {
+  return toVerificationLevel(level) >= VERIFIED_MIN_LEVEL;
+}
+
+/** Public badge text for a level, or null when there is nothing to claim. */
+export function verificationBadge(level: unknown): { label: string; detail: string; strong: boolean } | null {
+  switch (toVerificationLevel(level)) {
+    case 3:
+      return { label: "Verified · visited", detail: "28Homes checked the owner and confirmed the property exists and matches the photos.", strong: true };
+    case 2:
+      return { label: "Verified owner", detail: "28Homes checked the identity of the owner or agent.", strong: true };
+    case 1:
+      return { label: "Phone confirmed", detail: "28Homes confirmed the contact phone reaches the owner or agent.", strong: false };
+    default:
+      return null;
+  }
 }
 
 /** Coordinates if the listing has a valid map pin. */
@@ -70,6 +95,7 @@ export type PropertyCardData = {
   images: string[];
   created_at?: string | null;
   verified?: boolean;
+  verificationLevel?: VerificationLevel;
   coords?: [number, number] | null;
 };
 
@@ -87,7 +113,8 @@ export function toCardData(row: Record<string, unknown>): PropertyCardData {
     size_sqm: row.size_sqm == null ? null : Number(row.size_sqm),
     images: parseImages(row.images),
     created_at: (row.created_at as string | null) ?? null,
-    verified: isVerifiedListing(row.verification_status as string | null),
+    verified: isVerifiedListing(row.verification_level),
+    verificationLevel: toVerificationLevel(row.verification_level),
     coords: getCoords(row),
   };
 }

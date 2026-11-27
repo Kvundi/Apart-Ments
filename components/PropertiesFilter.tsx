@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { SlidersHorizontal, ChevronDown, ChevronUp } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, ChevronUp, BadgeCheck } from "lucide-react";
 
 const PROPERTY_TYPES = ["Apartment", "House", "Maisonette", "Villa", "Land", "Commercial"];
 const BED_OPTIONS = [{ label: "Any", value: "any" }, { label: "1+", value: "1" }, { label: "2+", value: "2" }, { label: "3+", value: "3" }, { label: "4+", value: "4" }, { label: "5+", value: "5" }];
@@ -36,7 +36,8 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
   const [mustHaves,     setMustHaves]     = useState<string[]>((currentParams.amenity || "").split(",").filter(Boolean));
   const [showAllMust,   setShowAllMust]   = useState(false);
   const [mobileOpen,    setMobileOpen]    = useState(false);
-  const activeCount = ["type", "property", "location", "min", "max", "beds"].filter((k) => currentParams[k]).length
+  const [verifiedOnly,  setVerifiedOnly]  = useState(currentParams.verified === "1");
+  const activeCount = ["type", "property", "location", "min", "max", "beds", "verified"].filter((k) => currentParams[k]).length
     + (currentParams.amenity ? currentParams.amenity.split(",").filter(Boolean).length : 0);
 
   const applyFilters = () => {
@@ -49,6 +50,7 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
     if (location)               params.set("location", location);
     if (currentParams.q)        params.set("q",        currentParams.q);
     if (mustHaves.length)       params.set("amenity",  mustHaves.join(","));
+    if (verifiedOnly)           params.set("verified", "1");
     if (currentParams.sort)     params.set("sort",     currentParams.sort);
     if (currentParams.view)     params.set("view",     currentParams.view);
     router.push(`/properties?${params.toString()}`);
@@ -56,7 +58,7 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
 
   const clearFilters = () => {
     setListingType(""); setPropertyType(""); setMinPrice("");
-    setMaxPrice(""); setBeds("any"); setLocation(""); setMustHaves([]);
+    setMaxPrice(""); setBeds("any"); setLocation(""); setMustHaves([]); setVerifiedOnly(false);
     router.push(currentParams.view === "map" ? "/properties?view=map" : "/properties");
   };
 
@@ -81,6 +83,27 @@ export default function PropertiesFilter({ currentParams }: { currentParams: Rec
         </div>
         <button onClick={clearFilters} className="text-xs text-emerald-600 hover:underline">Clear all</button>
       </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={verifiedOnly}
+        onClick={() => setVerifiedOnly(!verifiedOnly)}
+        className={`w-full flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+          verifiedOnly ? "bg-emerald-50 border-emerald-400" : "bg-white border-[#e6e2d8] hover:border-emerald-300"
+        }`}
+      >
+        <span className="flex items-center gap-2">
+          <BadgeCheck size={18} className="text-emerald-600 shrink-0" />
+          <span>
+            <span className="block text-sm font-semibold text-[#1a2420]">Verified listings only</span>
+            <span className="block text-xs text-[#6b6358]">Owner or property checked by 28Homes</span>
+          </span>
+        </span>
+        <span aria-hidden className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors ${verifiedOnly ? "bg-emerald-600" : "bg-[#d9d4c9]"}`}>
+          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${verifiedOnly ? "translate-x-5" : "translate-x-0.5"}`} />
+        </span>
+      </button>
 
       <div>
         <label className="block text-xs font-semibold text-[#6b6358] uppercase tracking-wider mb-2">Listing Type</label>

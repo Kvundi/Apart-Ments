@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MapPin, BadgeCheck, Home } from "lucide-react";
 import SaveHomeButton from "@/components/SaveHomeButton";
-import { daysOnSite, NEW_LISTING_DAYS, type PropertyCardData } from "@/lib/listing";
+import { daysOnSite, NEW_LISTING_DAYS, verificationBadge, type PropertyCardData } from "@/lib/listing";
 
 // Re-exported so pages can keep importing these from the card.
 export { toCardData, type PropertyCardData } from "@/lib/listing";
@@ -11,6 +11,7 @@ export default function PropertyCard({ p }: { p: PropertyCardData }) {
   const isRent = p.listing_type === "Rent";
   const days = daysOnSite(p.created_at);
   const isNew = days !== null && days <= NEW_LISTING_DAYS;
+  const badge = verificationBadge(p.verificationLevel);
   const pricePerSqm =
     !isRent && p.size_sqm && p.size_sqm > 0 && p.price ? Math.round(p.price / p.size_sqm) : null;
 
@@ -37,9 +38,14 @@ export default function PropertyCard({ p }: { p: PropertyCardData }) {
               <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-400 text-[#1a2420]">New</span>
             )}
           </div>
-          {p.verified && (
-            <span className="absolute bottom-3 left-3 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-md bg-white/95 text-emerald-700 shadow-sm">
-              <BadgeCheck size={14} /> Verified
+          {badge && (
+            <span
+              title={badge.detail}
+              className={`absolute bottom-3 left-3 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full shadow-md ${
+                badge.strong ? "bg-emerald-600 text-white" : "bg-white/95 text-[#1a2420]"
+              }`}
+            >
+              <BadgeCheck size={14} /> {badge.label}
             </span>
           )}
           {p.images.length > 1 && (

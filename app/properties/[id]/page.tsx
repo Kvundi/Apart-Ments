@@ -12,7 +12,7 @@ import CallAgentButton from "@/components/CallAgentButton";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { toE164, toWhatsAppNumber, formatPhone } from "@/lib/phone";
 import { getDummyContact, placeholderContactsEnabled } from "@/lib/dummyContacts";
-import { parseImages, daysOnSite, isVerifiedListing, getCoords } from "@/lib/listing";
+import { parseImages, daysOnSite, verificationBadge, getCoords } from "@/lib/listing";
 import SaveHomeButton from "@/components/SaveHomeButton";
 import ShareButton from "@/components/ShareButton";
 import PaymentEstimate from "@/components/PaymentEstimate";
@@ -54,6 +54,7 @@ type Property = {
   contact_email: string | null;
   preferred_contact: string | null;
   verification_status?: string | null;
+  verification_level?: number | null;
   latitude?: number | null;
   longitude?: number | null;
 };
@@ -132,7 +133,7 @@ async function PropertyDetail({ property }: { property: Property }) {
     `Hi${owner ? ` ${owner.split(/\s+/)[0]}` : ""}, I'm interested in "${p.title}" on 28Homes (ref ${p.id.slice(0, 8)})`
   );
   const whatsappHref = ownerPhone ? `https://wa.me/${toWhatsAppNumber(ownerPhone)}?text=${whatsappText}` : null;
-  const verified = isVerifiedListing(p.verification_status);
+  const badge = verificationBadge(p.verification_level);
   const coords = getCoords(p);
 
   const details = readDetails(p as unknown as Record<string, unknown>);
@@ -242,12 +243,16 @@ async function PropertyDetail({ property }: { property: Property }) {
                   <span className="px-3 py-1 text-xs rounded-full bg-[#f7f5ef] text-[#6b6358] border border-[#e6e2d8]">
                     {p.property_type}
                   </span>
-                  {verified && (
+                  {badge && (
                     <span
-                      title="The 28Homes team has reviewed this listing"
-                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300"
+                      title={badge.detail}
+                      className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${
+                        badge.strong
+                          ? "bg-emerald-600 text-white"
+                          : "bg-[#f7f5ef] text-[#1a2420] border border-[#e6e2d8]"
+                      }`}
                     >
-                      <BadgeCheck size={14} /> Verified listing
+                      <BadgeCheck size={14} /> {badge.label}
                     </span>
                   )}
                 </div>
@@ -255,6 +260,12 @@ async function PropertyDetail({ property }: { property: Property }) {
                 <p className="flex items-center gap-1.5 text-[#6b6358] mt-2">
                   <MapPin size={16} className="shrink-0 text-emerald-600" />
                   {p.address ? `${p.address}, ${p.location}` : p.location}
+                </p>
+                <p className="mt-2 text-xs text-[#6b6358]">
+                  {badge
+                    ? badge.detail
+                    : "Not yet verified by 28Homes."}{" "}
+                  Never pay a viewing fee or deposit before you have seen the property.
                 </p>
               </div>
               <div className="flex gap-2">

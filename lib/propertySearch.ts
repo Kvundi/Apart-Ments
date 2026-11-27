@@ -3,7 +3,7 @@
 // page and the saved-search alerts job, so an alert never disagrees with the page.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isSortKey, type SortKey } from "@/lib/listing";
+import { isSortKey, VERIFIED_MIN_LEVEL, type SortKey } from "@/lib/listing";
 
 export type SearchFilters = {
   type: string;      // "sale" | "rent" | ""
@@ -14,10 +14,11 @@ export type SearchFilters = {
   max: string;
   beds: string;
   amenity: string;
+  verified: string;  // "1" = only listings 28Homes has verified (level 2+)
   sort: SortKey;
 };
 
-const FILTER_KEYS = ["type", "property", "location", "q", "min", "max", "beds", "amenity"] as const;
+const FILTER_KEYS = ["type", "property", "location", "q", "min", "max", "beds", "amenity", "verified"] as const;
 
 /** Read filters from URL search params (page props or a stored query string). */
 export function parseFilters(
@@ -39,6 +40,7 @@ export function parseFilters(
     max: get("max"),
     beds: get("beds") === "any" ? "" : get("beds"),
     amenity: get("amenity"),
+    verified: get("verified") === "1" ? "1" : "",
     sort: isSortKey(sort) ? sort : "newest",
   };
 }
@@ -60,6 +62,7 @@ export function searchKey(f: SearchFilters): string {
 export function describeFilters(f: SearchFilters): string {
   const ksh = (v: string) => `KSh ${Number(v).toLocaleString("en-KE")}`;
   const parts = [
+    f.verified ? "Verified only" : "",
     f.type === "sale" ? "For Sale" : f.type === "rent" ? "For Rent" : "",
     f.property,
     f.location,
@@ -96,6 +99,7 @@ export function buildPropertyQuery(
   if (f.beds && !isNaN(Number(f.beds))) query = query.gte("bedrooms", Number(f.beds));
   const amenities = amenityList(f.amenity);
   if (amenities.length) query = query.contains("amenities", amenities);
+  if (f.verified) query = query.gte("verification_level", VERIFIED_MIN_LEVEL);
   if (since) query = query.gt("created_at", since);
 
   switch (f.sort) {

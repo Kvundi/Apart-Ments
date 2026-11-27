@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import Navbar from "@/components/Navbar";
 import SiteFooter from "@/components/SiteFooter";
 import Link from "next/link";
-import { Search, SearchX } from "lucide-react";
+import { BadgeCheck, Search, SearchX } from "lucide-react";
 import PropertiesFilter from "@/components/PropertiesFilter";
 import PropertyCard, { toCardData } from "@/components/PropertyCard";
 import SortSelect from "@/components/SortSelect";
@@ -49,6 +49,11 @@ export default async function PropertiesPage({
   const panelParams: Record<string, string> = view === "map" ? { ...currentParams, view } : currentParams;
   const hasFilters = Object.keys(activeParams(filters, { includeSort: false })).length > 0;
   const label = describeFilters(filters);
+  // One-tap "Verified only" toggle that keeps every other filter.
+  const verifiedToggleParams = new URLSearchParams(panelParams);
+  if (filters.verified) verifiedToggleParams.delete("verified");
+  else verifiedToggleParams.set("verified", "1");
+  const verifiedToggleHref = `/properties${verifiedToggleParams.size ? `?${verifiedToggleParams.toString()}` : ""}`;
 
   const empty = (
     <div className="text-center py-20 border border-[#e6e2d8] rounded-3xl bg-[#f7f5ef]">
@@ -105,6 +110,17 @@ export default async function PropertiesPage({
                 <p className="text-sm text-[#6b6358] mt-1">{label}</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
+                <Link
+                  href={verifiedToggleHref}
+                  aria-pressed={!!filters.verified}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm font-semibold border transition-colors ${
+                    filters.verified
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "bg-white border-[#e6e2d8] text-[#1a2420] hover:border-emerald-300"
+                  }`}
+                >
+                  <BadgeCheck size={16} /> Verified only
+                </Link>
                 {hasFilters && (
                   <Link href={view === "map" ? "/properties?view=map" : "/properties"} className="text-sm text-emerald-600 hover:underline">
                     Clear filters
