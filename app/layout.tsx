@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import MobileNav from "@/components/MobileNav";
 import SavedHomesSync from "@/components/SavedHomesSync";
+import SourceTracker from "@/components/SourceTracker";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <MobileNav />
           <SavedHomesSync />
+          <SourceTracker />
         </body>
       </html>
     </ClerkProvider>

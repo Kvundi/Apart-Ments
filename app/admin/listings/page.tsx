@@ -28,7 +28,7 @@ type ListingRow = FlagRow & {
   verified_at: string | null;
 };
 
-type TapRow = { id: string; property_id: string; channel: string; created_at: string };
+type TapRow = { id: string; property_id: string; channel: string; created_at: string; source: string | null };
 type DealRow = {
   id: string;
   property_id: string;
@@ -141,7 +141,7 @@ export default async function AdminListingsPage({ searchParams }: PageProps) {
       .limit(200),
     supabase
       .from("contact_events")
-      .select("id, property_id, channel, created_at")
+      .select("id, property_id, channel, created_at, source")
       .gte("created_at", daysAgoISO(30))
       .order("created_at", { ascending: false })
       .limit(2000),
@@ -476,6 +476,8 @@ function LeadsTab({ summary, taps, byId }: { summary: LeadSummary[]; taps: TapRo
         <Stat label="Leads, last 30 days" value={String(taps.length)} />
       </div>
 
+      <SourcesTable taps={taps} />
+
       <section>
         <h2 className="font-bold mb-3">By listing</h2>
         <div className="space-y-3">
@@ -531,6 +533,7 @@ function LeadsTab({ summary, taps, byId }: { summary: LeadSummary[]; taps: TapRo
               <MessageCircle size={14} className="text-emerald-600 shrink-0" />
               <span className="shrink-0 font-medium">{CHANNEL_LABELS[t.channel] ?? t.channel}</span>
               <span className="truncate text-[#6b6358]">{byId.get(t.property_id)?.title ?? "Deleted listing"}</span>
+              {t.source && <span className="shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{t.source.toUpperCase()}</span>}
               <span className="ml-auto shrink-0 text-xs text-[#6b6358]">{formatDate(t.created_at)}</span>
             </li>
           ))}
@@ -649,5 +652,25 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-semibold text-[#6b6358] uppercase tracking-wider">{label}</p>
       <p className="text-2xl font-bold mt-1">{value}</p>
     </div>
+  );
+}
+
+/** Leads per campaign code (?src=) — which posts actually brought inquiries. */
+function SourcesTable({ taps }: { taps: TapRow[] }) {
+  const counts = new Map<string, number>();
+  for (const t of taps) counts.set(t.source ?? "direct", (counts.get(t.source ?? "direct") ?? 0) + 1);
+  const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  return (
+    <section>
+      <h2 className="font-bold mb-3">By source (30 days)</h2>
+      <ul className="divide-y divide-[#e6e2d8] border border-[#e6e2d8] rounded-2xl bg-white">
+        {rows.map(([src, n]) => (
+          <li key={src} className="flex items-center justify-between px-4 py-2.5 text-sm">
+            <span className="font-medium">{src === "direct" ? "Direct / no code" : src.toUpperCase()}</span>
+            <span className="font-bold">{n}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

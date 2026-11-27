@@ -20,7 +20,7 @@ const since = new Date(Date.now() - days * 86_400_000).toISOString();
 const ksh = (n) => (n == null ? "—" : `KSh ${Math.round(Number(n)).toLocaleString("en-KE")}`);
 
 const [{ data: taps, error: e1 }, { data: deals, error: e2 }, { data: listings, error: e3 }] = await Promise.all([
-  db.from("contact_events").select("property_id, channel, created_at").gte("created_at", since),
+  db.from("contact_events").select("property_id, channel, created_at, source").gte("created_at", since),
   db.from("deals").select("property_id, status, listing_status, deal_price, commission, reported_at, decided_at"),
   db.from("properties").select("id, title, location, price, status, verification_status, verification_level, contact_name, created_at"),
 ]);
@@ -38,6 +38,11 @@ console.log(`\nLeads (WhatsApp/Call/Copy taps): ${taps.length}`);
 const channels = {};
 for (const t of taps) channels[t.channel] = (channels[t.channel] || 0) + 1;
 console.log(`By channel: ${Object.entries(channels).map(([c, n]) => `${c} ${n}`).join(", ") || "none"}`);
+
+const sources = {};
+for (const t of taps) sources[t.source || "direct"] = (sources[t.source || "direct"] || 0) + 1;
+console.log("\nLeads by source code (which post/ad brought them):");
+for (const [s, n] of Object.entries(sources).sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(3)}  ${s}`);
 
 console.log("\nLeads by listing (most first):");
 const ranked = [...perListing.entries()].sort((a, b) => b[1] - a[1]);

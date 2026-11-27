@@ -10,6 +10,7 @@
 // and collecting less personal data keeps us in line with the Data Protection Act.
 
 import { createClient } from "@/lib/supabase/client";
+import { currentSource } from "@/lib/source";
 
 export type ContactChannel = "whatsapp" | "call" | "copy_number";
 
@@ -27,7 +28,7 @@ export function logContactTap(propertyId: string, channel: ContactChannel): void
   fetch("/api/lead", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ propertyId, channel }),
+    body: JSON.stringify({ propertyId, channel, source: currentSource() }),
     keepalive: true, // survives the page opening WhatsApp or the dialer
   })
     .then((res) => {

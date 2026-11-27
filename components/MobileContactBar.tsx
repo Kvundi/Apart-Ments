@@ -2,6 +2,7 @@
 
 import { MessageCircle, Phone } from "lucide-react";
 import { logContactTap } from "@/lib/contactEvents";
+import { currentSource, withSource } from "@/lib/source";
 
 type Props = { whatsappHref: string; phone: string; propertyId: string };
 
@@ -15,7 +16,10 @@ export default function MobileContactBar({ whatsappHref, phone, propertyId }: Pr
           href={whatsappHref}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => logContactTap(propertyId, "whatsapp")}
+          onClick={(e) => {
+            e.currentTarget.href = withSource(whatsappHref, currentSource());
+            logContactTap(propertyId, "whatsapp");
+          }}
           className="flex-1 inline-flex items-center justify-center gap-2 bg-[#25D366] text-white font-semibold py-3 rounded-xl"
         >
           <MessageCircle size={18} /> WhatsApp

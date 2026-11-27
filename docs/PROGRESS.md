@@ -20,6 +20,13 @@ Last meeting: [2026-11-26](meetings/2026-11-26.md)
   logs leads), lister profile page, Post Listing notice, site wording. Waiting for: Ken's number in Vercel
   (`NEXT_PUBLIC_CONTACT_PHONE`), then push. Next: lock lister phone columns in the database.
 
+- **Social media agent: qualified property inquiries** (asked 27 Nov). Built: `docs/agents/social-growth.md`
+  (agent), `docs/social/PLAYBOOK.md`, `docs/social/QUALIFY.md` (WhatsApp qualifying replies), sample week
+  `docs/social/calendar/2026-W49.md`, `scripts/listings-for-content.mjs`, and source tracking (`?src=` codes on
+  links → "(via TT-1201A)" in the client's WhatsApp + `contact_events.source` + Admin → Leads → By source).
+  Waiting for Ken: create TikTok/YouTube/X accounts, WhatsApp Business, copy the agent file into `.claude/agents/`,
+  approve week 49.
+
 ## Waiting for review
 
 - **Tasks 1–3 (verification): tested 27 Nov, waiting for Ken to commit and push.**
