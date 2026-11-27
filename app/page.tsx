@@ -73,6 +73,7 @@ export default async function HomePage() {
             Homes, apartments and land for sale and rent from owners and agents. One WhatsApp to 28Homes and we connect you.
           </p>
           <HomeSearch chips={chips} />
+          {freeUsed !== null && <FreeListingsCounter used={freeUsed} limit={SITE.freeListingLimit} />}
         </div>
       </section>
 
@@ -87,8 +88,6 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
-
-      {freeUsed !== null && <FreeListingsCounter used={freeUsed} limit={SITE.freeListingLimit} />}
 
       {/* Buy / Rent / Sell — Zillow-style entry points */}
       <section className="max-w-7xl mx-auto px-6 pt-10 md:pt-16">

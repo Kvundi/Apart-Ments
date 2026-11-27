@@ -55,7 +55,7 @@ export default async function CommissionPage({
                 <strong>Sale:</strong> {COMMISSION.saleRate * 100}% of the final price agreed with the buyer.
               </li>
               <li>
-                <strong>Rental:</strong> {COMMISSION.rentMonths} month&apos;s rent, paid once when the tenant signs.
+                <strong>Rental:</strong> {`${COMMISSION.rentMonths} month's rent, paid once when the tenant signs.`}
               </li>
               <li>
                 <strong>Only for clients we introduce.</strong> If you find the buyer or tenant yourself, you owe us nothing.
